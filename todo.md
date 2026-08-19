@@ -1,6 +1,11 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [ ] Add visible progress feedback for large snapshot/runtime comparisons.
+- [ ] Extend morph transitions to Inspect and restored snapshot states.
+- [ ] Add optional slower cinematic compare mode for design reviews.
+- [ ] Create a reusable Hael Studio workflow skill using Skill Creator guidance.
+- [ ] Commit the complete project and create a private cross-platform repository.
 - [x] Define baseline/compare transition state and duration behavior.
 - [x] Add smooth canvas and layer-diff transitions when switching comparison snapshots.
 - [x] Preserve readable active-snapshot state during transitions.
