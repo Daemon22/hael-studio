@@ -155,8 +155,7 @@ function NodeCard({ node, selected, onSelect }: { node: Node; selected: boolean;
   return (
     <button
       onClick={onSelect}
-      className={cn("node-card", `node-${node.tone}`, selected && "node-selected")}
-      style={{ left: node.x, top: node.y }}
+      className={cn("node-card", `node-${node.tone}`, `node-anchor-${node.id}`, selected && "node-selected")}
     >
       <span className="node-icon"><Icon size={16} strokeWidth={1.8} /></span>
       <span className="node-copy"><strong>{node.label}</strong><small>{node.detail}</small></span>
@@ -494,7 +493,7 @@ export default function Home() {
             <div className="constellation-lines"><span className="line line-one" /><span className="line line-two" /><span className="line line-three" /><span className="orbit orbit-one" /><span className="orbit orbit-two" /></div>
             <div className="canvas-stamp"><span className="stamp-icon"><Sparkles size={15} /></span><span>Intention / 05</span><span className="stamp-divider" /><span>v0.8.4</span></div>
             <div className="canvas-title"><span className="eyebrow">Illuminated intention · 05</span><h2>A river where knowledge<br /><em>can remember itself.</em></h2><p>Research, language, and living systems converge into one generous interface.</p><div className="codex-caption"><span>✦</span> semantic manuscript / 09 dimensions</div></div>
-            {nodes.map((node) => <NodeCard key={node.id} node={node} selected={node.id === selected} onSelect={() => setSelected(node.id)} />)}
+            <div className="canvas-chip-field" aria-label="Semantic relationship map">{nodes.map((node) => <NodeCard key={node.id} node={node} selected={node.id === selected} onSelect={() => setSelected(node.id)} />)}</div>
             <div className="codex-seal"><span>HAEL</span><small>FIELD / 05</small></div><div className="canvas-signal"><div className="signal-orb"><span /><span /><span /></div><div><strong>{simulationRunning ? "Scenario in motion" : "System is listening"}</strong><small>{simulationRunning ? "conversation.turn.complete" : "5 semantic threads connected"}</small></div><button onClick={() => setSimulationRunning(!simulationRunning)}>{simulationRunning ? <X size={14} /> : <Play size={14} />}</button></div>
             {mode === "preview" && <div className="preview-runtime">
               <div className="runtime-toolbar"><div className="runtime-route"><span className="runtime-traffic"><i /><i /><i /></span><span>lineage.gqobonco.studio</span><StatusPill tone="green"><span className="pulse-dot" /> runtime ready</StatusPill></div><div className="runtime-toolbar-actions"><button onClick={replayScenario}><RotateCcw size={13} /> Replay</button><button onClick={() => setMode("simulate")}><Play size={13} /> Simulate</button></div></div>

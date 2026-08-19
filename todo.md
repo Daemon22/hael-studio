@@ -1,6 +1,14 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define semantic anchor zones and grouping rules for canvas chips.
+- [x] Replace fixed/absolute chip placement with responsive anchor-based layout.
+- [x] Add collision-aware grouping and compact mobile/tablet canvas behavior.
+- [x] Validate chip placement across Compose, Preview, Simulate, and Inspect.
+- [x] Replace ModeNav overflow with a searchable command menu.
+- [x] Add visible platform-aware shortcut hints to every command.
+- [x] Add ArrowUp/ArrowDown navigation, Enter execution, Escape close, and focus return behavior.
+- [x] Add accessible menu semantics and active-command styling.
 - [x] Build a shared responsive StudioShell for desktop, tablet, and mobile compositions.
 - [x] Build one unified ModeNav with primary modes, secondary overflow, active/focus states, and keyboard navigation.
 - [x] Preserve IDE rails, Mike, Split view, and runtime tools within the responsive shell.
