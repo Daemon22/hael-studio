@@ -1,6 +1,12 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Make Mike’s communication bridge interactive with transcript states, agent targeting, approvals, and cloud-safe status.
+- [x] Add richer application lifecycle sandbox states with icon, entry, navigation, runtime, media, and exit interactions.
+- [x] Add media runtime sandboxes for video and music with play, pause, seek, volume, and isolated runtime status.
+- [x] Add a visual shortcut reference palette with searchable commands and platform-aware key hints.
+- [x] Persist custom panel layouts and restore them reliably on session reload.
+- [x] Refine spacing, hierarchy, ornamentation, and empty states so the interface remains polished rather than dull.
 - [x] Keep subsystems isolated: code, canvas, runtime, media, agents, Mike communication, Git, and deployment must synchronize through explicit contracts rather than share mutable internals.
 - [x] Add Mike as a live communication bridge that can speak agent context and translate natural language into Orren terminal actions without bypassing architecture checks.
 - [x] Add persistent resizable panels with saved widths/heights and standard keyboard shortcuts.
