@@ -1,6 +1,10 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define Focus and Relationship preset rules for hierarchy, node emphasis, and connector visibility.
+- [x] Add a visible canvas preset switcher with persisted selection.
+- [x] Add responsive Focus and Relationship arrangements without absolute scatter.
+- [x] Validate preset switching across desktop, tablet, and phone widths.
 - [x] Define semantic anchor zones and grouping rules for canvas chips.
 - [x] Replace fixed/absolute chip placement with responsive anchor-based layout.
 - [x] Add collision-aware grouping and compact mobile/tablet canvas behavior.

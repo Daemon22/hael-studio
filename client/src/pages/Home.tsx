@@ -63,6 +63,7 @@ const markUrl = "/manus-storage/hael-studio-mark_792fa113.png";
 const canvasArt = "/manus-storage/hael-studio-canvas-art_368e3674.jpg";
 
 type Mode = "compose" | "preview" | "simulate" | "inspect";
+type CanvasLayout = "focus" | "relationship";
 
 type EffectKind = "frame" | "audio" | "animation" | "lifecycle" | "interaction";
 type EffectEvent = { id: string; time: number; kind: EffectKind; label: string; detail: string; tone: "gold" | "green" | "mist" | "ember"; trigger?: string };
@@ -174,8 +175,10 @@ export default function Home() {
   const [sent, setSent] = useState(false);
   const [activeTool, setActiveTool] = useState("canvas");
   const [layoutMode, setLayoutMode] = useState<"canvas" | "split">(() => (localStorage.getItem("hael-layout") as "canvas" | "split") || "canvas");
+  const [canvasLayout, setCanvasLayout] = useState<CanvasLayout>(() => (localStorage.getItem("hael-canvas-layout") as CanvasLayout) || "relationship");
   const [leftPanelWidth, setLeftPanelWidth] = useState(() => Number(localStorage.getItem("hael-left-width")) || 250);
   const [rightPanelWidth, setRightPanelWidth] = useState(() => Number(localStorage.getItem("hael-right-width")) || 310);
+  function chooseCanvasLayout(next: CanvasLayout) { setCanvasLayout(next); localStorage.setItem("hael-canvas-layout", next); }
   const [mikeOpen, setMikeOpen] = useState(false);
   const [mikeMessage, setMikeMessage] = useState("");
   const [miked, setMiked] = useState(false);
@@ -485,8 +488,8 @@ export default function Home() {
 
         <section className="canvas-column">
           <ModeNav mode={mode} onModeChange={setMode} layoutMode={layoutMode} onSplitView={() => setLayoutMode(layoutMode === "split" ? "canvas" : "split")} onRunScenario={() => setSimulationRunning(!simulationRunning)} onMike={() => setMikeOpen(true)} onCommand={() => setCommandOpen(true)} simulationRunning={simulationRunning} />
-          <div className="mode-intro"><div><span className="eyebrow">Current mode</span><h1><ModeIcon size={22} />{activeMode.label}</h1><p>{activeMode.caption}</p></div><div className="canvas-zoom"><span>100%</span><button>−</button><button>+</button></div></div>
-          <div className={cn("live-canvas", `canvas-${mode}`, layoutMode === "split" && "has-split-view")}>
+          <div className="mode-intro"><div><span className="eyebrow">Current mode</span><h1><ModeIcon size={22} />{activeMode.label}</h1><p>{activeMode.caption}</p></div><div className="canvas-intro-actions"><div className="canvas-layout-switcher" role="group" aria-label="Canvas layout preset"><span className="layout-label">Arrange</span><button className={cn(canvasLayout === "focus" && "active")} onClick={() => chooseCanvasLayout("focus")} aria-pressed={canvasLayout === "focus"}><Sparkles size={12} /> Focus</button><button className={cn(canvasLayout === "relationship" && "active")} onClick={() => chooseCanvasLayout("relationship")} aria-pressed={canvasLayout === "relationship"}><Network size={12} /> Relations</button></div><div className="canvas-zoom"><span>100%</span><button>−</button><button>+</button></div></div></div>
+          <div className={cn("live-canvas", `canvas-${mode}`, `canvas-layout-${canvasLayout}`, layoutMode === "split" && "has-split-view")}>
             {layoutMode === "split" && <div className="split-code-pane"><div className="split-pane-header"><span><Braces size={13} /> app.orn</span><span>Orren Language Tools</span></div><div className="code-lines"><span><i>01</i><b>intent</b> river_of_lineage <em>=</em> {"{"}</span><span><i>02</i>  <b>surface</b>: "welcoming-threshold",</span><span><i>03</i>  <b>listen</b>: ["presence", "language", "turn"],</span><span><i>04</i>  <b>realize</b>: <mark>preview</mark>(intention),</span><span><i>05</i>  <b>simulate</b>: scenario("multilingual"),</span><span><i>06</i>{"}"}</span></div><div className="split-pane-footer"><span><span className="pulse-dot" /> semantic LSP connected</span><button onClick={() => setActiveTool("terminal")}><PanelBottom size={12} /> Open terminal</button></div></div>}
             <div className="canvas-art" aria-hidden="true" />
             <div className="canvas-vignette" />
