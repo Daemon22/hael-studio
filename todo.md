@@ -1,6 +1,14 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define progressive-disclosure rules for canvas nodes, metadata, runtime details, communication, and advanced controls.
+- [x] Hide secondary layers by default and reveal them through selection, expansion, or explicit commands.
+- [x] Add persisted visibility preferences without overriding the calm default presentation.
+- [x] Validate disclosure behavior across desktop and phone layouts.
+- [x] Remove Mike as a named ModeNav or primary navigation surface.
+- [x] Integrate one ambient microphone control into the shared workspace bar.
+- [x] Preserve contextual agent targeting, transcript, approval, and contract-aware bridge behavior.
+- [x] Add accessible mic states for idle, listening, suggestion, approval, executing, and complete.
 - [x] Define Focus and Relationship preset rules for hierarchy, node emphasis, and connector visibility.
 - [x] Add a visible canvas preset switcher with persisted selection.
 - [x] Add responsive Focus and Relationship arrangements without absolute scatter.

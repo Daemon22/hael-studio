@@ -1,7 +1,7 @@
 /* Hael Studio visual system: one calm, responsive command surface keeps every mode discoverable without crowding the canvas. */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
-import { Activity, Braces, Check, ChevronDown, Command, Eye, MessageCircle, Play, Search, WandSparkles } from "lucide-react";
+import { Activity, Braces, Check, ChevronDown, Command, Eye, Mic, Play, Search, WandSparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 type Mode = "compose" | "preview" | "simulate" | "inspect";
@@ -38,7 +38,7 @@ export function ModeNav({ mode, onModeChange, layoutMode, onSplitView, onRunScen
     { id: "simulate", label: "Open Simulate", description: "Replay runtime events and lifecycle behavior", shortcut: `${mod} ⇧ S`, group: "Workspace", icon: Activity, action: () => onModeChange("simulate") },
     { id: "scenario", label: simulationRunning ? "Pause scenario" : "Run scenario", description: "Start or pause the active replayable scenario", shortcut: `${mod} R`, group: "Workspace", icon: Play, action: onRunScenario },
     { id: "split", label: layoutMode === "split" ? "Return to Canvas" : "Open Split view", description: "Pair the semantic canvas with the code editor", shortcut: `${mod} \\`, group: "Workspace", icon: Braces, action: onSplitView },
-    { id: "mike", label: "Open Mike", description: "Speak naturally with agents and Orren", shortcut: `${mod} J`, group: "Communication", icon: MessageCircle, action: onMike },
+    { id: "communication", label: "Open live communication", description: "Speak naturally with agents and Orren", shortcut: `${mod} J`, group: "Communication", icon: Mic, action: onMike },
   ], [layoutMode, mod, onMike, onModeChange, onRunScenario, onSplitView, simulationRunning]);
 
   const filtered = commands.filter((command) => `${command.label} ${command.description} ${command.group}`.toLowerCase().includes(query.toLowerCase()));
@@ -80,11 +80,11 @@ export function ModeNav({ mode, onModeChange, layoutMode, onSplitView, onRunScen
         <button ref={triggerRef} className={cn("mode-nav-command-trigger", menuOpen && "active")} onClick={() => setMenuOpen((open) => !open)} aria-haspopup="menu" aria-expanded={menuOpen}><Command size={14} /><span className="command-trigger-label">Commands</span><kbd>{mod} K</kbd><ChevronDown size={13} /></button>
         {menuOpen && <div className="mode-command-menu" role="menu" aria-label="Workspace commands" onKeyDown={onMenuKeyDown}>
           <div className="command-menu-search"><Search size={14} /><input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search commands…" aria-label="Search workspace commands" /><kbd>Esc</kbd></div>
-          <div className="command-menu-list">{filtered.length ? filtered.map((command, index) => { const Icon = command.icon; return <button key={command.id} className={cn("command-menu-item", index === activeIndex && "active")} role="menuitem" onMouseEnter={() => setActiveIndex(index)} onClick={() => execute(command)}><span className="command-item-icon"><Icon size={14} /></span><span className="command-item-copy"><strong>{command.label}</strong><small>{command.description}</small></span><span className="command-item-meta"><span>{command.group}</span><kbd>{command.shortcut}</kbd>{index === activeIndex && <Check size={12} />}</span></button>; }) : <div className="command-menu-empty"><Search size={16} /><span>No matching command</span><small>Try “simulate”, “split”, or “Mike”.</small></div>}</div>
+          <div className="command-menu-list">{filtered.length ? filtered.map((command, index) => { const Icon = command.icon; return <button key={command.id} className={cn("command-menu-item", index === activeIndex && "active")} role="menuitem" onMouseEnter={() => setActiveIndex(index)} onClick={() => execute(command)}><span className="command-item-icon"><Icon size={14} /></span><span className="command-item-copy"><strong>{command.label}</strong><small>{command.description}</small></span><span className="command-item-meta"><span>{command.group}</span><kbd>{command.shortcut}</kbd>{index === activeIndex && <Check size={12} />}</span></button>; }) : <div className="command-menu-empty"><Search size={16} /><span>No matching command</span><small>Try “simulate”, “split”, or “communication”.</small></div>}</div>
           <div className="command-menu-footer"><span><kbd>↑</kbd><kbd>↓</kbd> Navigate</span><span><kbd>↵</kbd> Run</span><span><kbd>Esc</kbd> Close</span></div>
         </div>}
       </div>
-      <div className="mode-nav-utilities"><button className="mode-nav-utility mike-trigger" onClick={onMike} aria-label="Open Mike live communication"><MessageCircle size={15} /><span className="pulse-dot" /></button><button className="mode-nav-utility" onClick={onCommand} aria-label="Open shortcut palette"><Command size={16} /></button></div>
+      <div className="mode-nav-utilities"><button className="mode-nav-utility mic-trigger" onClick={onMike} aria-label="Open live communication bridge"><Mic size={15} /><span className="pulse-dot" /></button><button className="mode-nav-utility" onClick={onCommand} aria-label="Open shortcut palette"><Command size={16} /></button></div>
     </nav>
   );
 }
