@@ -5,8 +5,8 @@
 - [x] Add second-snapshot selection to the named snapshot comparison flow.
 - [x] Add per-layer diff indicators for Meta, Links, and Live visibility.
 - [x] Validate comparison states across desktop and phone layouts.
-- [ ] Commit the tested implementation with a descriptive Git commit.
-- [ ] Push the commit to the configured shared remote branch.
+- [x] Commit the tested implementation with a descriptive Git commit.
+- [ ] Push the commit to the configured shared remote branch — blocked: artifact remote did not expose credentials to Git.
 - [x] Include metadata, connector, and runtime-signal visibility in Inspect state.
 - [x] Capture layer visibility in named canvas snapshots.
 - [x] Restore and compare layer visibility alongside layout, timeline, and runtime state.
