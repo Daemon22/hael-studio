@@ -1,6 +1,10 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define replayable effect timeline events for frames, audio, animation, lifecycle, and interaction triggers.
+- [x] Add timeline marker lanes and selected-event inspection in Preview and Simulate.
+- [x] Add timeline playhead scrubbing, play/pause, replay, step forward/back, and speed controls.
+- [x] Trigger visual/audio/animation state changes from timeline events without coupling subsystems.
 - [x] Define a unified media/effect contract for audio, video, animation, startup, shutdown, and interaction feedback.
 - [x] Add real browser audio preview with play, pause, seek, volume, mute, and sound-event status.
 - [x] Add real browser video preview with play, pause, seek, volume, fullscreen, and playback state.
