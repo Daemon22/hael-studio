@@ -1,6 +1,10 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Include metadata, connector, and runtime-signal visibility in Inspect state.
+- [x] Capture layer visibility in named canvas snapshots.
+- [x] Restore and compare layer visibility alongside layout, timeline, and runtime state.
+- [x] Validate layer-aware Inspect and snapshot behavior across responsive layouts.
 - [x] Define persisted visibility state for metadata, connectors, and runtime signals.
 - [x] Add a compact per-layer visibility control surface.
 - [x] Wire each layer to its visibility toggle without disturbing node selection or layout presets.
