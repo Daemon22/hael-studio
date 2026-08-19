@@ -1,6 +1,13 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Build a shared responsive StudioShell for desktop, tablet, and mobile compositions.
+- [x] Build one unified ModeNav with primary modes, secondary overflow, active/focus states, and keyboard navigation.
+- [x] Preserve IDE rails, Mike, Split view, and runtime tools within the responsive shell.
+- [x] Validate the shell at desktop, tablet, and phone widths without clipped navigation or overlapping surfaces.
+- [x] Read the attached Hael Studio source content and extract purpose, users, principles, and desired outcomes.
+- [x] Compare the source vision against the current live-canvas, IDE, runtime, and media-preview implementation.
+- [x] Prioritize the next product and architecture steps from the source vision rather than adding disconnected features.
 - [x] Add one composed logo-aligned background image instead of scattered decorative images.
 - [x] Reduce competing node density and preserve a clear visual focal point in the workspace.
 - [x] Keep background imagery subordinate to readable controls, content, and runtime panels.
