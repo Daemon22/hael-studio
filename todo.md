@@ -1,6 +1,10 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define baseline/compare transition state and duration behavior.
+- [x] Add smooth canvas and layer-diff transitions when switching comparison snapshots.
+- [x] Preserve readable active-snapshot state during transitions.
+- [x] Respect prefers-reduced-motion and responsive animation constraints.
 - [x] Define two-snapshot comparison semantics for unchanged, enabled, and hidden layer states.
 - [x] Add second-snapshot selection to the named snapshot comparison flow.
 - [x] Add per-layer diff indicators for Meta, Links, and Live visibility.
