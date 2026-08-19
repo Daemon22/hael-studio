@@ -425,6 +425,7 @@ export default function Home() {
 
   return (
     <main className="studio-shell">
+      <div className="studio-background-art" style={{ backgroundImage: `url(${canvasArt})` }} aria-hidden="true" />
       <header className="topbar">
         <div className="brand-lockup">
           <div className="brand-mark-wrap"><img src={markUrl} alt="Hael Studio mark" /></div>
@@ -486,7 +487,7 @@ export default function Home() {
           <div className="mode-intro"><div><span className="eyebrow">Current mode</span><h1><ModeIcon size={22} />{activeMode.label}</h1><p>{activeMode.caption}</p></div><div className="canvas-zoom"><span>100%</span><button>−</button><button>+</button></div></div>
           <div className={cn("live-canvas", `canvas-${mode}`, layoutMode === "split" && "has-split-view")}>
             {layoutMode === "split" && <div className="split-code-pane"><div className="split-pane-header"><span><Braces size={13} /> app.orn</span><span>Orren Language Tools</span></div><div className="code-lines"><span><i>01</i><b>intent</b> river_of_lineage <em>=</em> {"{"}</span><span><i>02</i>  <b>surface</b>: "welcoming-threshold",</span><span><i>03</i>  <b>listen</b>: ["presence", "language", "turn"],</span><span><i>04</i>  <b>realize</b>: <mark>preview</mark>(intention),</span><span><i>05</i>  <b>simulate</b>: scenario("multilingual"),</span><span><i>06</i>{"}"}</span></div><div className="split-pane-footer"><span><span className="pulse-dot" /> semantic LSP connected</span><button onClick={() => setActiveTool("terminal")}><PanelBottom size={12} /> Open terminal</button></div></div>}
-            <div className="canvas-art" style={{ backgroundImage: `url(${canvasArt})` }} />
+            <div className="canvas-art" aria-hidden="true" />
             <div className="canvas-vignette" />
             <div className="constellation-lines"><span className="line line-one" /><span className="line line-two" /><span className="line line-three" /><span className="orbit orbit-one" /><span className="orbit orbit-two" /></div>
             <div className="canvas-stamp"><span className="stamp-icon"><Sparkles size={15} /></span><span>Intention / 05</span><span className="stamp-divider" /><span>v0.8.4</span></div>

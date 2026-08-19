@@ -1,6 +1,13 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Add one composed logo-aligned background image instead of scattered decorative images.
+- [x] Reduce competing node density and preserve a clear visual focal point in the workspace.
+- [x] Keep background imagery subordinate to readable controls, content, and runtime panels.
+- [ ] Treat the web version as a complete first product, not a teaser or artificially limited demo.
+- [ ] Document which capabilities are live, simulated, connected, or planned so users are never misled.
+- [ ] Preserve shared contracts across web, Windows, and Android surfaces without forcing identical UI shells.
+- [ ] Define capability parity and graceful-degradation rules for browser, desktop, and mobile runtimes.
 - [x] Bind effect markers to live application runtime time and media timestamps.
 - [x] Add waveform inspection lane synchronized to audio playback.
 - [x] Add frame-thumbnail inspection lane synchronized to video playback.
