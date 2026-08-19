@@ -1,6 +1,12 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define two-snapshot comparison semantics for unchanged, enabled, and hidden layer states.
+- [x] Add second-snapshot selection to the named snapshot comparison flow.
+- [x] Add per-layer diff indicators for Meta, Links, and Live visibility.
+- [x] Validate comparison states across desktop and phone layouts.
+- [ ] Commit the tested implementation with a descriptive Git commit.
+- [ ] Push the commit to the configured shared remote branch.
 - [x] Include metadata, connector, and runtime-signal visibility in Inspect state.
 - [x] Capture layer visibility in named canvas snapshots.
 - [x] Restore and compare layer visibility alongside layout, timeline, and runtime state.
