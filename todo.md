@@ -1,6 +1,11 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define a unified media/effect contract for audio, video, animation, startup, shutdown, and interaction feedback.
+- [x] Add real browser audio preview with play, pause, seek, volume, mute, and sound-event status.
+- [x] Add real browser video preview with play, pause, seek, volume, fullscreen, and playback state.
+- [x] Add animation/effect controls with reduced-motion behavior and lifecycle triggers.
+- [x] Add an inspectable event/effect timeline showing which subsystem produced each sound, frame, or transition.
 - [x] Make Mike’s communication bridge interactive with transcript states, agent targeting, approvals, and cloud-safe status.
 - [x] Add richer application lifecycle sandbox states with icon, entry, navigation, runtime, media, and exit interactions.
 - [x] Add media runtime sandboxes for video and music with play, pause, seek, volume, and isolated runtime status.
