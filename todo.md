@@ -1,6 +1,10 @@
 # Hael Studio Runtime Expansion
 
 - [ ] Define shared runtime state for Preview and Simulate modes.
+- [x] Define persisted visibility state for metadata, connectors, and runtime signals.
+- [x] Add a compact per-layer visibility control surface.
+- [x] Wire each layer to its visibility toggle without disturbing node selection or layout presets.
+- [x] Validate the layer controls across desktop and phone layouts.
 - [x] Define progressive-disclosure rules for canvas nodes, metadata, runtime details, communication, and advanced controls.
 - [x] Hide secondary layers by default and reveal them through selection, expansion, or explicit commands.
 - [x] Add persisted visibility preferences without overriding the calm default presentation.
