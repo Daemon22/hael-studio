@@ -1,0 +1,220 @@
+/* Hael Studio responsive workspace correction.
+ * Keeps the semantic canvas primary while allowing rails, navigation, and
+ * contextual surfaces to collapse cleanly instead of clipping at narrow widths.
+ */
+
+/* The React grid receives user-resizable widths inline. These rules establish
+   safe viewport behavior without changing the stored desktop preferences. */
+.workspace-grid {
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: 54px minmax(210px, var(--hael-left-panel, 250px)) 5px minmax(0, 1fr) 5px minmax(260px, var(--hael-right-panel, 310px));
+}
+
+.canvas-column,
+.live-canvas,
+.mode-intro,
+.mode-nav,
+.mode-nav-primary,
+.mode-nav-utilities {
+  min-width: 0;
+}
+
+/* Prevent long controls from forcing the canvas wider than its grid track. */
+.topbar,
+.canvas-toolbar,
+.mode-intro,
+.mode-nav {
+  min-width: 0;
+}
+
+.topbar > *,
+.mode-intro > *,
+.mode-nav > * {
+  min-width: 0;
+}
+
+.project-switcher {
+  min-width: 0;
+  max-width: min(360px, 34vw);
+  margin-left: clamp(12px, 4vw, 70px);
+}
+
+.project-switcher strong,
+.brand-subtitle,
+.presence-label {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Keep the central canvas readable on medium desktop widths. */
+@media (max-width: 1180px) {
+  .topbar { padding-inline: 18px; }
+  .brand-lockup { min-width: 190px; }
+  .project-switcher { margin-left: 18px; max-width: 260px; }
+  .presence-label { display: none; }
+  .release-button { padding-inline: 10px; }
+
+  .workspace-grid {
+    grid-template-columns: 54px minmax(205px, 230px) 5px minmax(0, 1fr) 5px minmax(270px, 290px) !important;
+  }
+
+  .mode-intro { padding-inline: 18px; }
+  .mode-intro h1 { font-size: 29px; }
+  .canvas-intro-actions { flex-wrap: wrap; justify-content: flex-end; }
+}
+
+/* Tablet: make the canvas the dominant surface and turn the conversation loom
+   into an off-canvas surface. The workbench rail remains as the compact entry
+   point for tools. */
+@media (max-width: 900px) {
+  .topbar {
+    height: 64px;
+    padding-inline: 14px;
+    gap: 10px;
+  }
+
+  .brand-lockup { min-width: 0; flex: 1 1 auto; }
+  .brand-subtitle,
+  .presence,
+  .project-switcher { display: none; }
+  .topbar-actions { flex: 0 0 auto; }
+  .release-button { font-size: 10px; }
+
+  .workspace-grid {
+    grid-template-columns: 54px minmax(0, 1fr) !important;
+    min-height: calc(100vh - 64px);
+  }
+
+  .constellation-rail,
+  .left-resizer,
+  .right-resizer,
+  .loom-panel {
+    display: none !important;
+  }
+
+  .canvas-column { grid-column: 2; }
+
+  .mode-nav {
+    min-height: 54px;
+    padding-inline: 10px;
+    gap: 8px;
+    overflow: hidden;
+  }
+
+  .mode-nav-primary {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .mode-nav-primary::-webkit-scrollbar { display: none; }
+  .mode-nav-item { flex: 0 0 auto; white-space: nowrap; }
+  .command-trigger-label { display: none; }
+  .mode-nav-command-trigger { padding-inline: 9px; }
+
+  .mode-intro {
+    padding: 18px 16px 11px;
+    gap: 14px;
+  }
+
+  .mode-intro > div:first-child { min-width: 0; }
+  .mode-intro h1 { font-size: 27px; }
+  .mode-intro p { max-width: 55vw; }
+  .canvas-intro-actions { max-width: 52%; }
+
+  .live-canvas { min-height: 0; }
+}
+
+/* Phone: one-field workspace. Side tools collapse away, navigation becomes
+   horizontally scrollable, and dense canvas controls move below the heading. */
+@media (max-width: 640px) {
+  .studio-shell { overflow-x: hidden; }
+
+  .topbar {
+    height: 58px;
+    padding-inline: 10px;
+  }
+
+  .brand-mark-wrap { width: 34px; height: 34px; border-radius: 10px; }
+  .brand-mark-wrap img { width: 28px; height: 28px; }
+  .brand-name { font-size: 15px; letter-spacing: .13em; }
+  .topbar-actions { gap: 5px; }
+  .topbar-actions .icon-button { display: none; }
+  .release-button { height: 34px; padding-inline: 9px; }
+  .release-button svg:last-child { display: none; }
+
+  .workspace-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+    min-height: calc(100vh - 58px);
+  }
+
+  .workbench-rail { display: none !important; }
+  .canvas-column { grid-column: 1; width: 100%; }
+
+  .mode-nav {
+    min-height: 50px;
+    padding: 6px 8px;
+    border-bottom: 1px solid rgba(222,181,90,.11);
+  }
+
+  .mode-nav-primary { gap: 2px; }
+  .mode-nav-item { padding: 8px 9px; font-size: 10px; }
+  .mode-nav-item svg { width: 13px; height: 13px; }
+  .mode-nav-command-trigger { padding: 8px; }
+  .mode-nav-command-trigger kbd,
+  .mode-nav-utilities { display: none; }
+
+  .mode-intro {
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 15px 13px 10px;
+  }
+
+  .mode-intro h1 { font-size: 25px; }
+  .mode-intro p { max-width: 100%; font-size: 10px; }
+  .canvas-intro-actions {
+    width: 100%;
+    max-width: none;
+    justify-content: flex-start;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    scrollbar-width: none;
+    padding-bottom: 2px;
+  }
+
+  .canvas-intro-actions::-webkit-scrollbar { display: none; }
+  .canvas-intro-actions > * { flex: 0 0 auto; }
+
+  /* Canvas nodes must remain inside the viewport even when their semantic
+     coordinates were authored for the larger constellation. */
+  .live-canvas { overflow: hidden; }
+  .node-card { max-width: min(230px, 72vw); }
+  .node-copy small { max-width: 38vw; }
+
+  /* Dense desktop-only graph decoration should not compete with the readable
+     relationship surface on a phone. */
+  .canvas-connectors { opacity: .45; }
+}
+
+/* Very narrow devices: preserve interaction before visual density. */
+@media (max-width: 390px) {
+  .brand-name { font-size: 14px; }
+  .release-button { font-size: 9px; }
+  .mode-nav-item { padding-inline: 8px; }
+  .mode-nav-item span { display: none; }
+  .mode-nav-item.active span { display: inline; }
+  .mode-intro h1 { font-size: 23px; }
+}
+
+/* Respect reduced-motion preferences across the responsive shell. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    scroll-behavior: auto !important;
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}
