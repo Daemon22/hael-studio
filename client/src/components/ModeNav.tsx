@@ -3,8 +3,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Activity, Braces, Check, ChevronDown, Command, Eye, Mic, Play, Search, WandSparkles } from "lucide-react";
 import { cn } from "@/lib/utils";
+import type { Mode } from "@/state/studioStore";
 
-type Mode = "compose" | "preview" | "simulate" | "inspect";
 type CommandItem = { id: string; label: string; description: string; shortcut: string; group: string; icon: typeof Eye; action: () => void };
 
 type ModeNavProps = {
@@ -20,7 +20,7 @@ type ModeNavProps = {
 
 const primaryModes = [
   { id: "compose" as const, label: "Compose", icon: WandSparkles },
-  { id: "preview" as const, label: "Preview", icon: Eye },
+  { id: "simulate" as const, label: "Simulate", icon: Play },
   { id: "inspect" as const, label: "Inspect", icon: Search },
 ];
 
@@ -88,3 +88,6 @@ export function ModeNav({ mode, onModeChange, layoutMode, onSplitView, onRunScen
     </nav>
   );
 }
+
+
+

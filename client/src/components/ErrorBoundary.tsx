@@ -21,6 +21,12 @@ class ErrorBoundary extends Component<Props, State> {
     return { hasError: true, error };
   }
 
+  componentDidCatch(error: Error) {
+    if (import.meta.env.DEV) {
+      void import("@/runtime/registry").then(({ runtimeRegistry }) => runtimeRegistry.report("shell", "broken", error.message));
+    }
+  }
+
   render() {
     if (this.state.hasError) {
       return (

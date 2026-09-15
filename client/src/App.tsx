@@ -5,7 +5,10 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
+import { StudioProvider } from "@/state/studioStore";
+import { lazy, Suspense } from "react";
 
+const DevRuntime = import.meta.env.DEV ? lazy(() => import("@/runtime/DevRuntime")) : null;
 
 function Router() {
   return (
@@ -24,7 +27,7 @@ function Router() {
 // - If you want to make theme switchable, pass `switchable` ThemeProvider and use `useTheme` hook
 
 function App() {
-  return (
+  const application = (
     <ErrorBoundary>
       <ThemeProvider
         defaultTheme="light"
@@ -32,11 +35,14 @@ function App() {
       >
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <StudioProvider>
+            <Router />
+          </StudioProvider>
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
+  return DevRuntime ? <Suspense fallback={application}><DevRuntime>{application}</DevRuntime></Suspense> : application;
 }
 
 export default App;

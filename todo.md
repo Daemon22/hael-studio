@@ -91,6 +91,6 @@
 - [ ] Implement interactive Preview controls for device, language, persona, and live state.
 - [ ] Implement Simulate playback with play, pause, reset, replay, speed, and timeline scrubber.
 - [ ] Add manual event injection and event log updates.
-- [ ] Synchronize runtime state with selected canvas node, status ribbon, and Conversation Loom.
-- [ ] Validate TypeScript, production build, responsive behavior, and key interactions.
+- [x] Synchronize runtime state with selected canvas node, status ribbon, and Conversation Loom.
+- [x] Validate TypeScript, production build, responsive behavior, and key interactions.
 - [ ] Save a checkpoint for delivery.
