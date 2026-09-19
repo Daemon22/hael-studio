@@ -1,0 +1,363 @@
+openapi: 3.1.0
+info:
+  # Do not change the title, if the title changes, the import paths will be broken
+  title: Api
+  version: 0.1.0
+  description: Hael Studio workspace and runtime API
+servers:
+  - url: /api
+    description: Base API path
+tags:
+  - name: health
+    description: Health operations
+  - name: workspace
+    description: Hael Studio workspace operations
+  - name: runtime
+    description: Runtime scenario operations
+paths:
+  /healthz:
+    get:
+      operationId: healthCheck
+      tags: [health]
+      summary: Health check
+      description: Returns server health status
+      responses:
+        "200":
+          description: Healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HealthStatus"
+  /workspace:
+    get:
+      operationId: getWorkspace
+      tags: [workspace]
+      summary: Get the active Hael Studio workspace
+      responses:
+        "200":
+          description: Workspace snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceSnapshot"
+  /workspace/messages:
+    post:
+      operationId: createWorkspaceMessage
+      tags: [workspace]
+      summary: Add a message to the conversation loom
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceMessageInput"
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceMessage"
+        "400":
+          description: Invalid message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /workspace/reviews:
+    post:
+      operationId: createReviewRequest
+      tags: [workspace]
+      summary: Request a review for the active workspace
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRequestInput"
+      responses:
+        "201":
+          description: Review request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewRequest"
+        "400":
+          description: Invalid review request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /runtime/scenarios:
+    get:
+      operationId: listRuntimeScenarios
+      tags: [runtime]
+      summary: List replayable runtime scenarios
+      responses:
+        "200":
+          description: Runtime scenarios
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RuntimeScenario"
+  /runtime/events:
+    post:
+      operationId: injectRuntimeEvent
+      tags: [runtime]
+      summary: Inject a human-authored runtime event
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuntimeEventInput"
+      responses:
+        "201":
+          description: Injected event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeEvent"
+        "400":
+          description: Invalid runtime event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+components:
+  schemas:
+    HealthStatus:
+      type: object
+      properties:
+        status:
+          type: string
+      required:
+        - status
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    WorkspaceNode:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        detail:
+          type: string
+        tone:
+          type: string
+          enum: [gold, green, mist, ember]
+        feature:
+          type: string
+      required: [id, label, detail, tone, feature]
+    WorkspaceSpace:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        detail:
+          type: string
+        count:
+          type: integer
+        tone:
+          type: string
+          enum: [gold, green, blue, ember]
+        status:
+          type: string
+          enum: [active, waiting, healthy]
+      required: [id, label, detail, count, tone, status]
+    WorkspaceParticipant:
+      type: object
+      properties:
+        id:
+          type: string
+        initials:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+        tone:
+          type: string
+          enum: [gold, green, blue]
+      required: [id, initials, name, role, tone]
+    WorkspaceMessage:
+      type: object
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+        role:
+          type: string
+          enum: [human, agent, runtime, reviewer]
+        body:
+          type: string
+        timeLabel:
+          type: string
+        tone:
+          type: string
+          enum: [human, agent, soft]
+        linkedNodeId:
+          type: ["string", "null"]
+      required: [id, author, role, body, timeLabel, tone, linkedNodeId]
+    Capability:
+      type: object
+      properties:
+        id:
+          type: string
+        label:
+          type: string
+        state:
+          type: string
+          enum: [live, simulated, connected, planned]
+      required: [id, label, state]
+    WorkspaceSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        subtitle:
+          type: string
+        branch:
+          type: string
+        refinement:
+          type: integer
+        status:
+          type: string
+          enum: [flowing, review, blocked]
+        spaces:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceSpace"
+        nodes:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceNode"
+        participants:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceParticipant"
+        messages:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkspaceMessage"
+        capabilities:
+          type: array
+          items:
+            $ref: "#/components/schemas/Capability"
+      required:
+        - id
+        - name
+        - subtitle
+        - branch
+        - refinement
+        - status
+        - spaces
+        - nodes
+        - participants
+        - messages
+        - capabilities
+    WorkspaceMessageInput:
+      type: object
+      properties:
+        body:
+          type: string
+          minLength: 1
+          maxLength: 2000
+        target:
+          type: string
+          enum: [loom, orren, terminal, room]
+      required: [body, target]
+    ReviewRequestInput:
+      type: object
+      properties:
+        title:
+          type: string
+          minLength: 1
+          maxLength: 160
+        branch:
+          type: string
+      required: [title, branch]
+    ReviewRequest:
+      type: object
+      properties:
+        id:
+          type: string
+        status:
+          type: string
+          enum: [queued, ready]
+        title:
+          type: string
+        branch:
+          type: string
+        createdAt:
+          type: string
+      required: [id, status, title, branch, createdAt]
+    RuntimeEvent:
+      type: object
+      properties:
+        id:
+          type: string
+        scenarioId:
+          type: string
+        time:
+          type: integer
+        topic:
+          type: string
+        label:
+          type: string
+        detail:
+          type: string
+        tone:
+          type: string
+          enum: [green, gold, blue, ember]
+      required: [id, scenarioId, time, topic, label, detail, tone]
+    RuntimeEventInput:
+      type: object
+      properties:
+        scenarioId:
+          type: string
+        time:
+          type: integer
+          minimum: 0
+        topic:
+          type: string
+          minLength: 1
+        label:
+          type: string
+          minLength: 1
+        detail:
+          type: string
+          minLength: 1
+        tone:
+          type: string
+          enum: [green, gold, blue, ember]
+      required: [scenarioId, time, topic, label, detail, tone]
+    RuntimeScenario:
+      type: object
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        description:
+          type: string
+        duration:
+          type: integer
+        events:
+          type: array
+          items:
+            $ref: "#/components/schemas/RuntimeEvent"
+      required: [id, title, description, duration, events]

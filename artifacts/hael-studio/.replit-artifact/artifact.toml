@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Hael Studio"
+description = "A responsive cloud intelligence workspace for composing, previewing, simulating, inspecting, and communicating about complete applications and media experiences."
+version = "1.0.0"
+id = "artifacts/hael-studio"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21828
+
+[services.development]
+run = "pnpm --filter @workspace/hael-studio run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/hael-studio", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/hael-studio/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21828"
+BASE_PATH = "/"
