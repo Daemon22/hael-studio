@@ -6,6 +6,24 @@ import { changeTracker } from "./changeTracker";
 import { DevRuntimeInspector } from "@/components/DevRuntimeInspector";
 import { initializeRuntimeHmr, isHmrAvailable } from "./hmr";
 
+// HMR diagnostic types
+interface HmrBaseline {
+  timestamp: number;
+  runtimeRecords: Array<{ id: string; runtimeId?: string; version: number; health: string }>;
+  stateEngineState?: { mode: string; selectedNodeId: string; version: number };
+  changeTrackerCount: number;
+  pendingHmrCount: number;
+}
+
+interface HmrComparison {
+  baselineTime: number;
+  comparisonTime: number;
+  runtimeChanges: Array<{ id: string; runtimeId?: string; versionBefore: number; versionAfter: number; healthBefore: string; healthAfter: string }>;
+  stateChanges?: { modeBefore: string; modeAfter: string; selectedNodeIdBefore: string; selectedNodeIdAfter: string; versionBefore: number; versionAfter: number };
+  newTraces: number;
+  newHmrUpdates: number;
+}
+
 const applicationModel: RuntimeElement[] = [
   { id: "shell", label: "HAEL application shell", layer: "presentation", source: "client/src/App.tsx", symbol: "App", runtimeId: "feature.shell", feature: "shell", detail: "The mounted browser application." },
   { id: "home", label: "Studio workspace", layer: "presentation", source: "client/src/pages/Home.tsx", symbol: "Home", runtimeId: "feature.home", feature: "home", dependsOn: ["route.home", "studio.provider", "lifecycle.engine"], detail: "The current interactive workspace surface." },
@@ -55,6 +73,24 @@ function DevRuntimeHealthBridge() {
   return null;
 }
 
+// HMR diagnostic types
+interface HmrBaseline {
+  timestamp: number;
+  runtimeRecords: Array<{ id: string; runtimeId?: string; version: number; health: string }>;
+  stateEngineState?: { mode: string; selectedNodeId: string; version: number };
+  changeTrackerCount: number;
+  pendingHmrCount: number;
+}
+
+interface HmrComparison {
+  baselineTime: number;
+  comparisonTime: number;
+  runtimeChanges: Array<{ id: string; runtimeId?: string; versionBefore: number; versionAfter: number; healthBefore: string; healthAfter: string }>;
+  stateChanges?: { modeBefore: string; modeAfter: string; selectedNodeIdBefore: string; selectedNodeIdAfter: string; versionBefore: number; versionAfter: number };
+  newTraces: number;
+  newHmrUpdates: number;
+}
+
 // Expose runtime objects to window for debugging in DEV mode
 declare global {
   interface Window {
@@ -65,5 +101,69 @@ declare global {
     runProjectsScenario?: typeof import("./scenarios/projectsRegression").runProjectsScenario;
     isHmrAvailable?: typeof import("./hmr").isHmrAvailable;
     getPendingHmrUpdates?: typeof import("./hmr").getPendingHmrUpdates;
+    // Additional HMR diagnostic functions
+    captureHmrBaseline?: () => HmrBaseline;
+    compareHmrBaseline?: (baseline: HmrBaseline) => HmrComparison;
   }
+}
+
+// Expose HMR diagnostic functions to window
+if (import.meta.env.DEV) {
+  window.captureHmrBaseline = (): HmrBaseline => {
+    const snapshot = runtimeRegistry.getSnapshot();
+    const engine = window.getStateEngine?.();
+    
+    return {
+      timestamp: Date.now(),
+      runtimeRecords: snapshot.records.map(r => ({
+        id: r.id,
+        runtimeId: r.runtimeId,
+        version: r.version,
+        health: r.health,
+      })),
+      stateEngineState: engine ? {
+        mode: engine.getMode(),
+        selectedNodeId: engine.getSelectedNodeId(),
+        version: engine.getFullState().version,
+      } : undefined,
+      changeTrackerCount: changeTracker.getTraces().length,
+      pendingHmrCount: window.getPendingHmrUpdates?.().length || 0,
+    };
+  };
+  
+  window.compareHmrBaseline = (baseline: HmrBaseline): HmrComparison => {
+    const snapshot = runtimeRegistry.getSnapshot();
+    const engine = window.getStateEngine?.();
+    const currentState = engine ? engine.getFullState() : null;
+    
+    const runtimeChanges = snapshot.records.map(current => {
+      const before = baseline.runtimeRecords.find(r => r.id === current.id);
+      return {
+        id: current.id,
+        runtimeId: current.runtimeId,
+        versionBefore: before?.version || 0,
+        versionAfter: current.version,
+        healthBefore: before?.health || "unknown",
+        healthAfter: current.health,
+      };
+    }).filter(change => change.versionBefore !== change.versionAfter || change.healthBefore !== change.healthAfter);
+    
+    const stateChanges = baseline.stateEngineState && currentState ? {
+      modeBefore: baseline.stateEngineState.mode,
+      modeAfter: currentState.mode,
+      selectedNodeIdBefore: baseline.stateEngineState.selectedNodeId,
+      selectedNodeIdAfter: currentState.selectedNodeId,
+      versionBefore: baseline.stateEngineState.version,
+      versionAfter: currentState.version,
+    } : undefined;
+    
+    return {
+      baselineTime: baseline.timestamp,
+      comparisonTime: Date.now(),
+      runtimeChanges,
+      stateChanges,
+      newTraces: changeTracker.getTraces().length - baseline.changeTrackerCount,
+      newHmrUpdates: (window.getPendingHmrUpdates?.().length || 0) - baseline.pendingHmrCount,
+    };
+  };
 }

@@ -11,21 +11,25 @@ import { runtimeRegistry } from "./registry";
 import { changeTracker } from "./changeTracker";
 import { getStateEngine } from "./stateEngine";
 
-// Track which modules have been registered for HMR
-const registeredModules = new Set<string>();
+// Track which modules have been registered for HMR observation
+const registeredModules = new Map<string, () => void>();
 
 // Track pending HMR updates
 interface HmrUpdate {
   moduleId: string;
   timestamp: number;
-  type: "update" | "prereplace" | "dispose";
+  type: "beforeUpdate" | "afterUpdate" | "error";
+  payload?: any;
 }
 
 const pendingUpdates: HmrUpdate[] = [];
 
+// Track module-specific callbacks
+const moduleCallbacks = new Map<string, Set<() => void>>();
+
 /**
- * Register a module for HMR tracking
- * When the module is edited, the callback will be triggered
+ * Register a module for HMR observation using Vite's global HMR events
+ * We use import.meta.hot.on() to listen to global HMR events, not accept()
  */
 export function registerHmrModule(moduleId: string, onUpdate: () => void): () => void {
   if (!import.meta.env.DEV || !import.meta.hot) {
@@ -36,41 +40,173 @@ export function registerHmrModule(moduleId: string, onUpdate: () => void): () =>
     return () => {};
   }
   
-  registeredModules.add(moduleId);
-  
-  // Listen for HMR events on this module
-  import.meta.hot.on(moduleId, (event) => {
-    const update: HmrUpdate = {
-      moduleId,
-      timestamp: Date.now(),
-      type: event.type as "update" | "prereplace" | "dispose",
-    };
-    pendingUpdates.push(update);
-    
-    // Record the change in ChangeTracker
-    const record = runtimeRegistry.getSnapshot().records.find((r) => r.source === moduleId);
-    if (record) {
-      changeTracker.recordChange({
-        id: record.id,
-        type: "refresh",
-        timestamp: Date.now(),
-        from: record.health,
-        moduleId,
-        consequence: `HMR ${event.type} event detected for ${moduleId}`,
-      });
+  registeredModules.set(moduleId, () => {
+    // Add callback to the set for this module
+    if (!moduleCallbacks.has(moduleId)) {
+      moduleCallbacks.set(moduleId, new Set());
     }
-    
-    // Trigger callback
-    onUpdate();
-    
-    // Cleanup old updates
-    if (pendingUpdates.length > 50) {
-      pendingUpdates.shift();
-    }
+    moduleCallbacks.get(moduleId)!.add(onUpdate);
   });
   
+  // Immediately add the callback
+  if (!moduleCallbacks.has(moduleId)) {
+    moduleCallbacks.set(moduleId, new Set());
+  }
+  moduleCallbacks.get(moduleId)!.add(onUpdate);
+  
   return () => {
-    registeredModules.delete(moduleId);
+    const callbacks = moduleCallbacks.get(moduleId);
+    if (callbacks) {
+      callbacks.delete(onUpdate);
+      if (callbacks.size === 0) {
+        moduleCallbacks.delete(moduleId);
+        registeredModules.delete(moduleId);
+      }
+    }
+  };
+}
+
+/**
+ * Initialize global HMR event listeners
+ * This should be called once at application startup
+ */
+let globalListenersInitialized = false;
+
+export function initializeGlobalHmrListeners(): () => void {
+  if (!import.meta.env.DEV || !import.meta.hot || globalListenersInitialized) {
+    return () => {};
+  }
+  
+  globalListenersInitialized = true;
+  
+  const beforeUpdateListener = (payload: any) => {
+    const updates = payload.updates || [];
+    for (const update of updates) {
+      const moduleId = update.path || update.url;
+      const callbacks = moduleCallbacks.get(moduleId);
+      if (callbacks) {
+        const hmrUpdate: HmrUpdate = {
+          moduleId,
+          timestamp: Date.now(),
+          type: "beforeUpdate",
+          payload,
+        };
+        pendingUpdates.push(hmrUpdate);
+        
+        // Record the change in ChangeTracker
+        const record = runtimeRegistry.getSnapshot().records.find((r) => r.source === moduleId);
+        if (record) {
+          changeTracker.recordChange({
+            id: record.id,
+            type: "refresh",
+            timestamp: Date.now(),
+            from: record.health,
+            moduleId,
+            consequence: `HMR beforeUpdate detected for ${moduleId}`,
+          });
+        }
+        
+        // Trigger all callbacks for this module
+        callbacks.forEach(callback => callback());
+        
+        // Cleanup old updates
+        if (pendingUpdates.length > 50) {
+          pendingUpdates.shift();
+        }
+      }
+    }
+  };
+  
+  const afterUpdateListener = (payload: any) => {
+    const updates = payload.updates || [];
+    for (const update of updates) {
+      const moduleId = update.path || update.url;
+      const callbacks = moduleCallbacks.get(moduleId);
+      if (callbacks) {
+        const hmrUpdate: HmrUpdate = {
+          moduleId,
+          timestamp: Date.now(),
+          type: "afterUpdate",
+          payload,
+        };
+        pendingUpdates.push(hmrUpdate);
+        
+        // Record the change in ChangeTracker
+        const record = runtimeRegistry.getSnapshot().records.find((r) => r.source === moduleId);
+        if (record) {
+          changeTracker.recordChange({
+            id: record.id,
+            type: "refresh",
+            timestamp: Date.now(),
+            from: record.health,
+            moduleId,
+            consequence: `HMR afterUpdate detected for ${moduleId}`,
+          });
+        }
+        
+        // Trigger all callbacks for this module
+        callbacks.forEach(callback => callback());
+        
+        // Cleanup old updates
+        if (pendingUpdates.length > 50) {
+          pendingUpdates.shift();
+        }
+      }
+    }
+  };
+  
+  const errorListener = (payload: any) => {
+    const moduleId = payload.path || payload.url;
+    const callbacks = moduleCallbacks.get(moduleId);
+    if (callbacks) {
+      const hmrUpdate: HmrUpdate = {
+        moduleId,
+        timestamp: Date.now(),
+        type: "error",
+        payload,
+      };
+      pendingUpdates.push(hmrUpdate);
+      
+      // Record the error in ChangeTracker
+      const record = runtimeRegistry.getSnapshot().records.find((r) => r.source === moduleId);
+      if (record) {
+        changeTracker.recordChange({
+          id: record.id,
+          type: "refresh",
+          timestamp: Date.now(),
+          from: record.health,
+          moduleId,
+          consequence: `HMR error detected for ${moduleId}: ${payload?.err?.message || 'Unknown error'}`,
+        });
+      }
+      
+      // Trigger all callbacks for this module
+      callbacks.forEach(callback => callback());
+      
+      // Cleanup old updates
+      if (pendingUpdates.length > 50) {
+        pendingUpdates.shift();
+      }
+    }
+  };
+  
+  // Register the listeners with Vite's global HMR events
+  const hot = import.meta.hot;
+  if (hot && hot.on) {
+    hot.on('vite:beforeUpdate', beforeUpdateListener);
+    hot.on('vite:afterUpdate', afterUpdateListener);
+    hot.on('vite:error', errorListener);
+  }
+  
+  // Return cleanup function
+  return () => {
+    const hot = import.meta.hot;
+    if (hot && hot.off) {
+      hot.off('vite:beforeUpdate', beforeUpdateListener);
+      hot.off('vite:afterUpdate', afterUpdateListener);
+      hot.off('vite:error', errorListener);
+    }
+    globalListenersInitialized = false;
   };
 }
 
@@ -107,7 +243,7 @@ export function setupAutoReRegistration(): () => void {
     if (record.source) {
       const disposal = registerHmrModule(record.source, () => {
         // On HMR update, re-register with the same runtimeId
-        const newRecord = runtimeRegistry.register({
+        const unregister = runtimeRegistry.register({
           id: record.id,
           label: record.label,
           layer: record.layer,
@@ -134,7 +270,7 @@ export function setupAutoReRegistration(): () => void {
         });
         
         // Store disposal for cleanup
-        disposals.push(newRecord);
+        disposals.push(unregister);
       });
       disposals.push(disposal);
     }
@@ -212,6 +348,7 @@ export function initializeRuntimeHmr(): () => void {
   }
   
   const disposals: (() => void)[] = [
+    initializeGlobalHmrListeners(),
     setupAutoReRegistration(),
     setupStateEngineHmrTracking(),
   ];

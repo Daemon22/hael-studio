@@ -1,4 +1,4 @@
-/* Hael Studio visual system: one calm, responsive command surface keeps every mode discoverable without crowding the canvas. */
+/* Hael Studio visual system: one calm, responsive command surface keeps every mode discoverable without crowding the canvas. HMR test v1 */
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { KeyboardEvent } from "react";
 import { Activity, Braces, Check, ChevronDown, Command, Eye, Mic, Play, Search, WandSparkles } from "lucide-react";
