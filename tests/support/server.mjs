@@ -2,6 +2,8 @@ import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
 
+const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
+
 const workspaceRoot = new URL("../../", import.meta.url);
 
 export async function getFreePort() {
@@ -36,7 +38,7 @@ export async function waitForHttp(url, { timeoutMs = 20_000 } = {}) {
 
 export function startWorkspaceApi(port) {
   return startProcess(
-    "pnpm",
+    pnpmCommand,
     ["--filter", "@workspace/api-server", "run", "dev"],
     { PORT: String(port), NODE_ENV: "test", LOG_LEVEL: "silent" },
   );
@@ -44,7 +46,7 @@ export function startWorkspaceApi(port) {
 
 export function startStudio(port) {
   return startProcess(
-    "pnpm",
+    pnpmCommand,
     ["--filter", "@workspace/hael-studio", "run", "dev"],
     { PORT: String(port), BASE_PATH: "/", NODE_ENV: "test" },
   );
@@ -55,7 +57,8 @@ function startProcess(command, args, extraEnv) {
     cwd: workspaceRoot,
     env: { ...process.env, ...extraEnv },
     stdio: ["ignore", "pipe", "pipe"],
-    detached: true,
+    detached: process.platform !== "win32",
+    shell: process.platform === "win32",
   });
   let output = "";
   child.stdout.on("data", (chunk) => {
@@ -78,7 +81,11 @@ function startProcess(command, args, extraEnv) {
     async stop() {
       if (child.exitCode !== null) return;
       try {
-        process.kill(-child.pid, "SIGTERM");
+        if (process.platform === "win32") {
+          child.kill("SIGTERM");
+        } else {
+          process.kill(-child.pid, "SIGTERM");
+        }
       } catch {
         child.kill("SIGTERM");
       }
@@ -88,7 +95,11 @@ function startProcess(command, args, extraEnv) {
       ]);
       if (child.exitCode === null) {
         try {
-          process.kill(-child.pid, "SIGKILL");
+          if (process.platform === "win32") {
+            child.kill("SIGKILL");
+          } else {
+            process.kill(-child.pid, "SIGKILL");
+          }
         } catch {
           child.kill("SIGKILL");
         }

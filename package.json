@@ -3,7 +3,7 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "preinstall": "node -e \"if(!(process.env.npm_config_user_agent||'').includes('pnpm')){console.error('Use pnpm instead');process.exit(1)}\"",
+    "preinstall": "node -e \"const fs=require('fs'); for(const file of ['package-lock.json','yarn.lock']) try{fs.unlinkSync(file)}catch(error){if(error.code!=='ENOENT')throw error}; if(!(process.env.npm_config_user_agent||'').startsWith('pnpm/')){console.error('Use pnpm instead');process.exit(1)}\"",
     "build": "pnpm run typecheck && pnpm -r --if-present run build",
     "test": "node --test tests/*.test.mjs",
     "typecheck:libs": "tsc --build",

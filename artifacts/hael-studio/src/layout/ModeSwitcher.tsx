@@ -1,0 +1,1 @@
+export { ModeNav as default, ModeNav as ModeSwitcher } from "@/components/ModeNav";

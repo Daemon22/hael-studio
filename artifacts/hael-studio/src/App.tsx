@@ -2,18 +2,9 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
-import ErrorBoundary from "./components/ErrorBoundary";
-import { ThemeProvider } from "./contexts/ThemeContext";
 import Home from "./pages/Home";
-import { StudioProvider } from "@/state/studioStore";
 import { lazy, Suspense } from "react";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-
-const queryClient = new QueryClient({
-  defaultOptions: {
-    queries: { staleTime: 15_000, retry: 1 },
-  },
-});
+import { AppProviders } from "@/app/providers";
 
 const DevRuntime = import.meta.env.DEV ? lazy(() => import("@/runtime/DevRuntime")) : null;
 
@@ -35,21 +26,12 @@ function Router() {
 
 function App() {
   const application = (
-    <QueryClientProvider client={queryClient}>
-      <ErrorBoundary>
-        <ThemeProvider
-          defaultTheme="light"
-          // switchable
-        >
-          <TooltipProvider>
-            <Toaster />
-            <StudioProvider>
-              <Router />
-            </StudioProvider>
-          </TooltipProvider>
-        </ThemeProvider>
-      </ErrorBoundary>
-    </QueryClientProvider>
+    <AppProviders>
+      <TooltipProvider>
+        <Toaster />
+        <Router />
+      </TooltipProvider>
+    </AppProviders>
   );
   return DevRuntime ? <Suspense fallback={application}><DevRuntime>{application}</DevRuntime></Suspense> : application;
 }
