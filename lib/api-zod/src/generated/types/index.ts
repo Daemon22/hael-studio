@@ -18,6 +18,7 @@ export * from './runtimeEventInput';
 export * from './runtimeEventInputTone';
 export * from './runtimeEventTone';
 export * from './runtimeScenario';
+export * from './runtimeStateConflictResponse';
 export * from './workspaceMessage';
 export * from './workspaceMessageInput';
 export * from './workspaceMessageInputTarget';

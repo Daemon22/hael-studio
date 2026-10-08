@@ -27,8 +27,11 @@ import type {
   RuntimeEvent,
   RuntimeEventInput,
   RuntimeScenario,
+  RuntimeStateConflictResponse,
   WorkspaceMessage,
   WorkspaceMessageInput,
+  WorkspaceRuntimeState,
+  WorkspaceRuntimeStateInput,
   WorkspaceSnapshot
 } from './api.schemas';
 
@@ -213,6 +216,171 @@ export function useGetWorkspace<TData = Awaited<ReturnType<typeof getWorkspace>>
 
 
 
+
+export const getGetWorkspaceRuntimeStateUrl = () => {
+
+
+
+
+  return `/api/workspace/runtime-state`
+}
+
+/**
+ * @summary Get the durable live-construction state
+ */
+export const getWorkspaceRuntimeState = async ( options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceRuntimeState> => {
+
+  return customFetch<WorkspaceRuntimeState>(getGetWorkspaceRuntimeStateUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetWorkspaceRuntimeStateQueryKey = () => {
+    return [
+    `/api/workspace/runtime-state`
+    ] as const;
+    }
+
+
+export const getGetWorkspaceRuntimeStateQueryOptions = <TData = Awaited<ReturnType<typeof getWorkspaceRuntimeState>>, TError = ErrorType<ErrorResponse>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceRuntimeState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetWorkspaceRuntimeStateQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getWorkspaceRuntimeState>>> = ({ signal }) => getWorkspaceRuntimeState({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceRuntimeState>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetWorkspaceRuntimeStateQueryResult = NonNullable<Awaited<ReturnType<typeof getWorkspaceRuntimeState>>>
+export type GetWorkspaceRuntimeStateQueryError = ErrorType<ErrorResponse>
+
+
+/**
+ * @summary Get the durable live-construction state
+ */
+
+export function useGetWorkspaceRuntimeState<TData = Awaited<ReturnType<typeof getWorkspaceRuntimeState>>, TError = ErrorType<ErrorResponse>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getWorkspaceRuntimeState>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetWorkspaceRuntimeStateQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getSaveWorkspaceRuntimeStateUrl = () => {
+
+
+
+
+  return `/api/workspace/runtime-state`
+}
+
+/**
+ * @summary Save live-construction state with optimistic concurrency
+ */
+export const saveWorkspaceRuntimeState = async (workspaceRuntimeStateInput: WorkspaceRuntimeStateInput, options?: Parameters<typeof customFetch>[1]): Promise<WorkspaceRuntimeState> => {
+
+    const getHeaders = (h?: NonNullable<RequestInit['headers']>): Record<string, string | readonly string[]> => {
+    if (!h) return {};
+    if (h instanceof Headers) return Object.fromEntries(h.entries());
+    if (Symbol.iterator in h) {
+      return Object.fromEntries(
+        Array.from(h as Iterable<Iterable<string>>, (entry) => Array.from(entry) as [string, string]),
+      );
+    }
+    const headers: Record<string, string | readonly string[]> = {};
+    for (const [name, value] of Object.entries<string | readonly string[] | undefined>(h)) {
+      if (value !== undefined) headers[name] = value;
+    }
+    return headers;
+  };
+return customFetch<WorkspaceRuntimeState>(getSaveWorkspaceRuntimeStateUrl(),
+  {
+    ...options,
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', ...getHeaders(options?.headers) },
+    body: JSON.stringify(workspaceRuntimeStateInput)
+  }
+);}
+
+
+
+
+
+export const getSaveWorkspaceRuntimeStateMutationKey = () => ['saveWorkspaceRuntimeState'] as const;
+
+export const getSaveWorkspaceRuntimeStateMutationOptions = <TError = ErrorType<ErrorResponse | RuntimeStateConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>, TError,SaveWorkspaceRuntimeStateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>, TError,SaveWorkspaceRuntimeStateMutationVariables, TContext> => {
+
+const mutationKey = getSaveWorkspaceRuntimeStateMutationKey();
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>, SaveWorkspaceRuntimeStateMutationVariables> = (props) => {
+          const {data} = props ?? {};
+
+          return  saveWorkspaceRuntimeState(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SaveWorkspaceRuntimeStateMutationResult = NonNullable<Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>>
+    export type SaveWorkspaceRuntimeStateMutationBody = BodyType<WorkspaceRuntimeStateInput>
+    export type SaveWorkspaceRuntimeStateMutationError = ErrorType<ErrorResponse | RuntimeStateConflictResponse>
+    export type SaveWorkspaceRuntimeStateMutationVariables = {data: BodyType<WorkspaceRuntimeStateInput>}
+
+    /**
+ * @summary Save live-construction state with optimistic concurrency
+ */
+export const useSaveWorkspaceRuntimeState = <TError = ErrorType<ErrorResponse | RuntimeStateConflictResponse>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>, TError,SaveWorkspaceRuntimeStateMutationVariables, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof saveWorkspaceRuntimeState>>,
+        TError,
+        SaveWorkspaceRuntimeStateMutationVariables,
+        TContext
+      > => {
+      return useMutation(getSaveWorkspaceRuntimeStateMutationOptions(options));
+    }
 
 export const getCreateWorkspaceMessageUrl = () => {
 
@@ -455,6 +623,83 @@ export function useListRuntimeScenarios<TData = Awaited<ReturnType<typeof listRu
  ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
 
   const queryOptions = getListRuntimeScenariosQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListRuntimeEventsUrl = () => {
+
+
+
+
+  return `/api/runtime/events`
+}
+
+/**
+ * @summary List human-authored runtime events
+ */
+export const listRuntimeEvents = async ( options?: Parameters<typeof customFetch>[1]): Promise<RuntimeEvent[]> => {
+
+  return customFetch<RuntimeEvent[]>(getListRuntimeEventsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListRuntimeEventsQueryKey = () => {
+    return [
+    `/api/runtime/events`
+    ] as const;
+    }
+
+
+export const getListRuntimeEventsQueryOptions = <TData = Awaited<ReturnType<typeof listRuntimeEvents>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRuntimeEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListRuntimeEventsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listRuntimeEvents>>> = ({ signal }) => listRuntimeEvents({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listRuntimeEvents>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListRuntimeEventsQueryResult = NonNullable<Awaited<ReturnType<typeof listRuntimeEvents>>>
+export type ListRuntimeEventsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List human-authored runtime events
+ */
+
+export function useListRuntimeEvents<TData = Awaited<ReturnType<typeof listRuntimeEvents>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listRuntimeEvents>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListRuntimeEventsQueryOptions(options)
 
   const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
 

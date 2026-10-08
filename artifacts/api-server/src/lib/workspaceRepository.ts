@@ -21,7 +21,7 @@ export type WorkspaceRuntimeStateRecord = {
 };
 
 export class RuntimeStateConflictError extends Error {
-  constructor() {
+  constructor(public readonly current: WorkspaceRuntimeStateRecord | null) {
     super("Runtime state has changed since it was read.");
     this.name = "RuntimeStateConflictError";
   }
@@ -36,6 +36,38 @@ async function getDatabase() {
   }
   databaseModule ??= import("@workspace/db");
   return databaseModule;
+}
+
+export async function initializeWorkspaceRepository(): Promise<void> {
+  const db = await getDatabase();
+  if (!db) return;
+  try {
+    await db.pool.query("SELECT 1");
+  } catch (error) {
+    const code = typeof error === "object" && error !== null && "code" in error
+      ? ` (Postgres code ${error.code})`
+      : "";
+    throw new Error(`Could not connect to PostgreSQL using DATABASE_URL${code}. Check host, credentials, network, and TLS settings.`);
+  }
+  const { rows } = await db.pool.query(
+    "SELECT to_regclass('hael_schema_migrations') AS migrations_table",
+  );
+  if (!rows[0]?.migrations_table) {
+    throw new Error("Hael Studio database migrations are missing. Run `pnpm --filter @workspace/db migrate` before starting the API.");
+  }
+  const { rows: migrations } = await db.pool.query(
+    "SELECT id FROM hael_schema_migrations WHERE id = $1",
+    ["0001_initial_workspace.sql"],
+  );
+  if (migrations.length === 0) {
+    throw new Error("Hael Studio database migrations are incomplete. Run `pnpm --filter @workspace/db migrate` before starting the API.");
+  }
+}
+
+export async function closeWorkspaceRepository(): Promise<void> {
+  if (!databaseModule) return;
+  const db = await databaseModule;
+  await db.closeDatabase();
 }
 
 async function getOrCreateWorkspace(db: NonNullable<Awaited<ReturnType<typeof getDatabase>>>) {
@@ -163,7 +195,11 @@ export async function saveStudioRuntimeState(
   const db = await getDatabase();
   if (!db) {
     const actualRevision = memoryRuntimeState?.revision ?? 0;
-    if (actualRevision !== expectedRevision) throw new RuntimeStateConflictError();
+    if (actualRevision !== expectedRevision) {
+      throw new RuntimeStateConflictError(
+        memoryRuntimeState ? structuredClone(memoryRuntimeState) : null,
+      );
+    }
     memoryRuntimeState = {
       workspaceId,
       revision: actualRevision + 1,
@@ -187,7 +223,14 @@ export async function saveStudioRuntimeState(
       .where(eq(studioRuntimeStates.workspaceId, workspaceId))
       .limit(1);
     const actualRevision = current?.revision ?? 0;
-    if (actualRevision !== expectedRevision) throw new RuntimeStateConflictError();
+    if (actualRevision !== expectedRevision) {
+      throw new RuntimeStateConflictError(current ? {
+        workspaceId: current.workspaceId,
+        revision: current.revision,
+        updatedAt: current.updatedAt.toISOString(),
+        state: current.state,
+      } : null);
+    }
 
     const updatedAt = new Date();
     const revision = actualRevision + 1;

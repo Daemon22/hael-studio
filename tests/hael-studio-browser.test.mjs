@@ -1,6 +1,8 @@
 import assert from "node:assert/strict";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
 import { createServer } from "node:http";
+import path from "node:path";
 import { promisify } from "node:util";
 import { after, before, test } from "node:test";
 import {
@@ -11,12 +13,14 @@ import {
 } from "./support/server.mjs";
 
 const execFileAsync = promisify(execFile);
+const chromiumPath = findChromium();
 let api;
 let studio;
 let proxy;
 let browserUrl;
 
 before(async () => {
+  if (!chromiumPath) return;
   const apiPort = await getFreePort();
   const studioPort = await getFreePort();
   const proxyPort = await getFreePort();
@@ -25,7 +29,11 @@ before(async () => {
   await waitForHttp(`http://127.0.0.1:${apiPort}/api/healthz`);
 
   studio = startStudio(studioPort);
-  await waitForHttp(`http://127.0.0.1:${studioPort}/`);
+  try {
+    await waitForHttp(`http://127.0.0.1:${studioPort}/`);
+  } catch (error) {
+    throw new Error(`${error}\nStudio output:\n${studio.getOutput()}`);
+  }
 
   proxy = createServer((request, response) => {
     const targetPort = request.url?.startsWith("/api/") ? apiPort : studioPort;
@@ -53,15 +61,17 @@ before(async () => {
 });
 
 after(async () => {
-  proxy?.closeAllConnections?.();
-  await new Promise((resolve) => proxy?.close(resolve));
+  if (proxy) {
+    proxy.closeAllConnections?.();
+    await new Promise((resolve) => proxy.close(resolve));
+  }
   await studio?.stop();
   await api?.stop();
 });
 
-test("browser loads the workspace rendered from the API", async () => {
+test("browser loads the workspace rendered from the API", { skip: !chromiumPath }, async () => {
   const { stdout, stderr } = await execFileAsync(
-    "/repl/tools/bin/chromium",
+    chromiumPath,
     [
       "--headless",
       "--no-sandbox",
@@ -82,3 +92,24 @@ test("browser loads the workspace rendered from the API", async () => {
   assert.match(dom, /Responsive studio shell/);
   assert.doesNotMatch(dom, /Workspace unavailable/);
 });
+
+function findChromium() {
+  if (process.env.CHROMIUM_BIN) return process.env.CHROMIUM_BIN;
+  const candidates = process.platform === "win32"
+    ? ["chrome.exe", "msedge.exe"]
+    : process.platform === "darwin"
+      ? ["chromium", "Google Chrome"]
+      : ["chromium", "chromium-browser", "google-chrome", "microsoft-edge"];
+  const extensions = process.platform === "win32"
+    ? (process.env.PATHEXT ?? ".EXE;.CMD;.BAT").split(";")
+    : [""];
+  for (const directory of (process.env.PATH ?? "").split(path.delimiter)) {
+    for (const candidate of candidates) {
+      for (const extension of extensions) {
+        const executable = path.join(directory, path.extname(candidate) ? candidate : `${candidate}${extension}`);
+        if (existsSync(executable)) return executable;
+      }
+    }
+  }
+  return existsSync("/repl/tools/bin/chromium") ? "/repl/tools/bin/chromium" : undefined;
+}

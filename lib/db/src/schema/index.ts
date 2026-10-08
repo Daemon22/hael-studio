@@ -6,7 +6,9 @@ import {
   text,
   timestamp,
   uuid,
+  check,
 } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
 import type {
   ReviewRequest,
   RuntimeEvent,
@@ -47,22 +49,18 @@ export const studioRuntimeStates = pgTable("hael_studio_runtime_states", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
-});
+}, (table) => [check("hael_studio_runtime_states_revision_nonnegative", sql`${table.revision} >= 0`)]);
 
-export const reviewRequests = pgTable(
-  "hael_review_requests",
-  {
-    id: uuid("id").primaryKey(),
-    workspaceId: text("workspace_id")
-      .notNull()
-      .references(() => workspaces.id, { onDelete: "cascade" }),
-    request: jsonb("request").$type<ReviewRequest>().notNull(),
-    createdAt: timestamp("created_at", { withTimezone: true })
-      .notNull()
-      .defaultNow(),
-  },
-  (table) => [index("hael_review_requests_created_at_idx").on(table.workspaceId, table.createdAt)],
-);
+export const reviewRequests = pgTable("hael_review_requests", {
+  id: uuid("id").primaryKey(),
+  workspaceId: text("workspace_id")
+    .notNull()
+    .references(() => workspaces.id, { onDelete: "cascade" }),
+  request: jsonb("request").$type<ReviewRequest>().notNull(),
+  createdAt: timestamp("created_at", { withTimezone: true })
+    .notNull()
+    .defaultNow(),
+});
 
 export const runtimeEvents = pgTable(
   "hael_runtime_events",

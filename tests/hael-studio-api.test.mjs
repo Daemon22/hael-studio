@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { after, before, describe, test } from "node:test";
 import {
   getFreePort,
+  startBuiltWorkspaceApi,
   startWorkspaceApi,
   waitForHttp,
 } from "./support/server.mjs";
@@ -21,7 +22,12 @@ before(async () => {
   const port = await getFreePort();
   baseUrl = `http://127.0.0.1:${port}/api`;
   api = startWorkspaceApi(port);
-  await waitForHttp(`${baseUrl}/healthz`);
+  try {
+    await waitForHttp(`${baseUrl}/healthz`);
+  } catch (error) {
+    await api.stop();
+    throw new Error(`${error}\nAPI output:\n${api.getOutput()}`);
+  }
 });
 
 after(async () => {
@@ -46,6 +52,87 @@ describe("Hael Studio API contracts", { concurrency: false }, () => {
     assert.ok(workspace.nodes.length > 0);
     assert.ok(workspace.messages.length > 0);
     assert.ok(workspace.capabilities.length > 0);
+  });
+
+  test("saves runtime state with versioned conflict protection", async () => {
+    const firstState = { components: { canvas: { selected: "orren" } } };
+    const firstResponse = await request("/workspace/runtime-state", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: 0, state: firstState }),
+    });
+    const first = await json(firstResponse);
+
+    assert.equal(firstResponse.status, 200);
+    assert.equal(first.revision, 1);
+    assert.deepEqual(first.state, firstState);
+
+    const conflictResponse = await request("/workspace/runtime-state", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: 0, state: { lost: true } }),
+    });
+    const conflict = await json(conflictResponse);
+
+    assert.equal(conflictResponse.status, 409);
+    assert.match(conflict.error, /changed since it was read/);
+    assert.equal(conflict.current.revision, 1);
+    assert.deepEqual(conflict.current.state, firstState);
+
+    const secondState = { ...firstState, inspector: { expanded: true } };
+    const secondResponse = await request("/workspace/runtime-state", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ expectedRevision: conflict.current.revision, state: secondState }),
+    });
+    const second = await json(secondResponse);
+    assert.equal(secondResponse.status, 200);
+    assert.equal(second.revision, 2);
+    assert.deepEqual(second.state, secondState);
+
+    const concurrent = await Promise.all([
+      request("/workspace/runtime-state", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 2, state: { writer: "left" } }),
+      }),
+      request("/workspace/runtime-state", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ expectedRevision: 2, state: { writer: "right" } }),
+      }),
+    ]);
+    const outcomes = await Promise.all(concurrent.map(async (response) => ({
+      status: response.status,
+      body: await json(response),
+    })));
+    assert.deepEqual(outcomes.map(({ status }) => status).sort(), [200, 409]);
+    const winner = outcomes.find(({ status }) => status === 200).body;
+    const rejected = outcomes.find(({ status }) => status === 409).body;
+    assert.equal(winner.revision, 3);
+    assert.equal(rejected.current.revision, 3);
+    assert.deepEqual(rejected.current.state, winner.state);
+  });
+
+  test("fails clearly when production starts without DATABASE_URL", async () => {
+    const port = await getFreePort();
+    const productionApi = startBuiltWorkspaceApi(port, { nodeEnv: "production", logLevel: "error" });
+    const result = await productionApi.exit;
+    assert.equal(result.code, 1);
+    assert.match(result.output, /DATABASE_URL is required in production/);
+  });
+
+  test("fails clearly when production cannot reach Postgres", async () => {
+    const port = await getFreePort();
+    const productionApi = startBuiltWorkspaceApi(port, {
+      nodeEnv: "production",
+      logLevel: "error",
+      databaseUrl: "postgresql://hael_test:hael_test@127.0.0.1:1/hael_test",
+    });
+    const result = await productionApi.exit;
+    assert.equal(result.code, 1);
+    assert.match(result.output, /Could not connect to PostgreSQL using DATABASE_URL/);
+    assert.doesNotMatch(result.output, /hael_test/);
   });
 
   test("creates a workspace message and links Orren messages", async () => {

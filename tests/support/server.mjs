@@ -1,6 +1,7 @@
 import { once } from "node:events";
 import { spawn } from "node:child_process";
 import { createServer } from "node:net";
+import { fileURLToPath } from "node:url";
 
 const pnpmCommand = process.platform === "win32" ? "pnpm.cmd" : "pnpm";
 
@@ -36,11 +37,16 @@ export async function waitForHttp(url, { timeoutMs = 20_000 } = {}) {
   throw new Error(`Timed out waiting for ${url}: ${lastError ?? "no response"}`);
 }
 
-export function startWorkspaceApi(port) {
+export function startWorkspaceApi(port, { databaseUrl, nodeEnv = "test" } = {}) {
+  return startBuiltWorkspaceApi(port, { databaseUrl, nodeEnv });
+}
+
+export function startBuiltWorkspaceApi(port, { databaseUrl, nodeEnv = "test", logLevel = "silent" } = {}) {
+  const entry = new URL("../../artifacts/api-server/dist/index.mjs", import.meta.url);
   return startProcess(
-    pnpmCommand,
-    ["--filter", "@workspace/api-server", "run", "dev"],
-    { PORT: String(port), NODE_ENV: "test", LOG_LEVEL: "silent" },
+    process.execPath,
+    ["--enable-source-maps", fileURLToPath(entry)],
+    { PORT: String(port), NODE_ENV: nodeEnv, LOG_LEVEL: logLevel, DATABASE_URL: databaseUrl },
   );
 }
 
@@ -53,12 +59,16 @@ export function startStudio(port) {
 }
 
 function startProcess(command, args, extraEnv) {
+  const env = { ...process.env, ...extraEnv };
+  for (const [key, value] of Object.entries(extraEnv)) {
+    if (value === undefined) delete env[key];
+  }
   const child = spawn(command, args, {
     cwd: workspaceRoot,
-    env: { ...process.env, ...extraEnv },
+    env,
     stdio: ["ignore", "pipe", "pipe"],
     detached: process.platform !== "win32",
-    shell: process.platform === "win32",
+    shell: command.toLowerCase().endsWith(".cmd"),
   });
   let output = "";
   child.stdout.on("data", (chunk) => {
@@ -80,14 +90,18 @@ function startProcess(command, args, extraEnv) {
     exit,
     async stop() {
       if (child.exitCode !== null) return;
-      try {
-        if (process.platform === "win32") {
-          child.kill("SIGTERM");
-        } else {
+      if (process.platform === "win32") {
+        const terminator = spawn("taskkill.exe", ["/PID", String(child.pid), "/T", "/F"], {
+          stdio: "ignore",
+          windowsHide: true,
+        });
+        await once(terminator, "exit");
+      } else {
+        try {
           process.kill(-child.pid, "SIGTERM");
+        } catch {
+          child.kill("SIGTERM");
         }
-      } catch {
-        child.kill("SIGTERM");
       }
       await Promise.race([
         exit,

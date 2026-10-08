@@ -9,6 +9,7 @@ import {
   GetWorkspaceRuntimeStateResponse,
   SaveWorkspaceRuntimeStateBody,
   SaveWorkspaceRuntimeStateResponse,
+  RuntimeStateConflictResponseSchema,
 } from "@workspace/api-zod";
 import {
   readStudioRuntimeState,
@@ -53,7 +54,13 @@ router.put("/workspace/runtime-state", async (req, res) => {
     res.json(SaveWorkspaceRuntimeStateResponse.parse(saved));
   } catch (error) {
     if (error instanceof RuntimeStateConflictError) {
-      res.status(409).json({ error: error.message });
+      const conflict = RuntimeStateConflictResponseSchema.parse({
+        error: error.message,
+        current: error.current
+          ? { ...error.current, updatedAt: new Date(error.current.updatedAt) }
+          : null,
+      });
+      res.status(409).json(conflict);
       return;
     }
     throw error;

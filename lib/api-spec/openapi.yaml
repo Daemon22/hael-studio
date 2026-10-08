@@ -86,7 +86,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ErrorResponse"
+                $ref: "#/components/schemas/RuntimeStateConflictResponse"
   /workspace/messages:
     post:
       operationId: createWorkspaceMessage
@@ -343,6 +343,16 @@ components:
           type: object
           additionalProperties: true
       required: [workspaceId, revision, updatedAt, state]
+    RuntimeStateConflictResponse:
+      type: object
+      required: [error, current]
+      properties:
+        error:
+          type: string
+        current:
+          allOf:
+            - $ref: "#/components/schemas/WorkspaceRuntimeState"
+          nullable: true
     WorkspaceRuntimeStateInput:
       type: object
       properties:

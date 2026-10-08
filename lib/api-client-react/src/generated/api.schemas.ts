@@ -145,6 +145,28 @@ export interface WorkspaceSnapshot {
   capabilities: Capability[];
 }
 
+export type WorkspaceRuntimeStateState = { [key: string]: unknown };
+
+export interface WorkspaceRuntimeState {
+  workspaceId: string;
+  revision: number;
+  updatedAt: string;
+  state: WorkspaceRuntimeStateState;
+}
+
+export interface RuntimeStateConflictResponse {
+  error: string;
+  current: WorkspaceRuntimeState | null;
+}
+
+export type WorkspaceRuntimeStateInputState = { [key: string]: unknown };
+
+export interface WorkspaceRuntimeStateInput {
+  /** @minimum 0 */
+  expectedRevision: number;
+  state: WorkspaceRuntimeStateInputState;
+}
+
 export type WorkspaceMessageInputTarget = typeof WorkspaceMessageInputTarget[keyof typeof WorkspaceMessageInputTarget];
 
 
