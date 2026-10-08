@@ -67,6 +67,37 @@ export const GetWorkspaceResponse = zod.object({
 
 
 /**
+ * @summary Get the durable live-construction state
+ */
+export const GetWorkspaceRuntimeStateResponse = zod.object({
+  "workspaceId": zod.string(),
+  "revision": zod.number().int(),
+  "updatedAt": zod.coerce.date(),
+  "state": zod.record(zod.string(), zod.unknown())
+})
+
+
+/**
+ * @summary Save live-construction state with optimistic concurrency
+ */
+export const saveWorkspaceRuntimeStateBodyExpectedRevisionMin = 0;
+
+
+
+export const SaveWorkspaceRuntimeStateBody = zod.object({
+  "expectedRevision": zod.number().int().min(saveWorkspaceRuntimeStateBodyExpectedRevisionMin),
+  "state": zod.record(zod.string(), zod.unknown())
+})
+
+export const SaveWorkspaceRuntimeStateResponse = zod.object({
+  "workspaceId": zod.string(),
+  "revision": zod.number().int(),
+  "updatedAt": zod.coerce.date(),
+  "state": zod.record(zod.string(), zod.unknown())
+})
+
+
+/**
  * @summary Add a message to the conversation loom
  */
 export const createWorkspaceMessageBodyBodyMax = 2000;
@@ -129,6 +160,21 @@ export const ListRuntimeScenariosResponseItem = zod.object({
 }))
 })
 export const ListRuntimeScenariosResponse = zod.array(ListRuntimeScenariosResponseItem)
+
+
+/**
+ * @summary List human-authored runtime events
+ */
+export const ListRuntimeEventsResponseItem = zod.object({
+  "id": zod.string(),
+  "scenarioId": zod.string(),
+  "time": zod.number().int(),
+  "topic": zod.string(),
+  "label": zod.string(),
+  "detail": zod.string(),
+  "tone": zod.enum(['green', 'gold', 'blue', 'ember'])
+})
+export const ListRuntimeEventsResponse = zod.array(ListRuntimeEventsResponseItem)
 
 
 /**

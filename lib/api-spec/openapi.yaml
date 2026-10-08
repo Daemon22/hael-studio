@@ -40,6 +40,53 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/WorkspaceSnapshot"
+  /workspace/runtime-state:
+    get:
+      operationId: getWorkspaceRuntimeState
+      tags: [workspace]
+      summary: Get the durable live-construction state
+      responses:
+        "200":
+          description: Current versioned runtime state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceRuntimeState"
+        "404":
+          description: No runtime state has been saved yet
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: saveWorkspaceRuntimeState
+      tags: [workspace]
+      summary: Save live-construction state with optimistic concurrency
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceRuntimeStateInput"
+      responses:
+        "200":
+          description: Saved runtime state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceRuntimeState"
+        "400":
+          description: Invalid runtime state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Runtime state changed since it was read
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
   /workspace/messages:
     post:
       operationId: createWorkspaceMessage
@@ -103,6 +150,19 @@ paths:
                 items:
                   $ref: "#/components/schemas/RuntimeScenario"
   /runtime/events:
+    get:
+      operationId: listRuntimeEvents
+      tags: [runtime]
+      summary: List human-authored runtime events
+      responses:
+        "200":
+          description: Persisted runtime events
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RuntimeEvent"
     post:
       operationId: injectRuntimeEvent
       tags: [runtime]
@@ -269,6 +329,30 @@ components:
         - participants
         - messages
         - capabilities
+    WorkspaceRuntimeState:
+      type: object
+      properties:
+        workspaceId:
+          type: string
+        revision:
+          type: integer
+        updatedAt:
+          type: string
+          format: date-time
+        state:
+          type: object
+          additionalProperties: true
+      required: [workspaceId, revision, updatedAt, state]
+    WorkspaceRuntimeStateInput:
+      type: object
+      properties:
+        expectedRevision:
+          type: integer
+          minimum: 0
+        state:
+          type: object
+          additionalProperties: true
+      required: [expectedRevision, state]
     WorkspaceMessageInput:
       type: object
       properties:

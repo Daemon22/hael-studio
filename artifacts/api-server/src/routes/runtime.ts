@@ -3,8 +3,10 @@ import { Router, type IRouter } from "express";
 import {
   InjectRuntimeEventBody,
   InjectRuntimeEventResponse,
+  ListRuntimeEventsResponse,
   ListRuntimeScenariosResponse,
 } from "@workspace/api-zod";
+import { readRuntimeEvents, saveRuntimeEvent } from "../lib/workspaceRepository";
 
 const router: IRouter = Router();
 
@@ -52,9 +54,18 @@ router.get("/runtime/scenarios", (req, res) => {
   res.json(ListRuntimeScenariosResponse.parse(scenarios));
 });
 
-router.post("/runtime/events", (req, res) => {
+router.get("/runtime/events", async (_req, res) => {
+  res.json(ListRuntimeEventsResponse.parse(await readRuntimeEvents()));
+});
+
+router.post("/runtime/events", async (req, res) => {
   const parsed = InjectRuntimeEventBody.safeParse(req.body);
   if (!parsed.success) {
+    res.status(400).json({ error: "Runtime event is invalid." });
+    return;
+  }
+
+  if (!scenarios.some((scenario) => scenario.id === parsed.data.scenarioId)) {
     res.status(400).json({ error: "Runtime event is invalid." });
     return;
   }
@@ -63,6 +74,7 @@ router.post("/runtime/events", (req, res) => {
     id: randomUUID(),
     ...parsed.data,
   });
+  await saveRuntimeEvent(event);
   req.log.info({ scenarioId: event.scenarioId, topic: event.topic }, "Runtime event injected");
   res.status(201).json(event);
 });

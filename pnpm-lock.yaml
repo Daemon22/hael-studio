@@ -616,6 +616,9 @@ importers:
 
   lib/db:
     dependencies:
+      '@workspace/api-zod':
+        specifier: workspace:*
+        version: link:../api-zod
       drizzle-orm:
         specifier: 'catalog:'
         version: 0.45.2(@types/pg@8.23.1)(pg@8.23.0)
