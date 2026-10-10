@@ -192,9 +192,7 @@ function mapWorkspaceNodes(apiNodes: WorkspaceNode[]): Node[] {
 
 function mapScenario(scenario: RuntimeScenario): Scenario {
   return {
-<SidePanel>
     title: scenario.title,
-</SidePanel></> : <button className="loom-reopen"
     duration: scenario.duration,
     events: scenario.events.map((event) => ({ ...event, tone: event.tone })),
   };
