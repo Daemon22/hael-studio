@@ -4,11 +4,12 @@
   "license": "MIT",
   "scripts": {
     "preinstall": "node -e \"const fs=require('fs'); for(const file of ['package-lock.json','yarn.lock']) try{fs.unlinkSync(file)}catch(error){if(error.code!=='ENOENT')throw error}; if(!(process.env.npm_config_user_agent||'').startsWith('pnpm/')){console.error('Use pnpm instead');process.exit(1)}\"",
-    "build": "pnpm run typecheck && pnpm -r --if-present run build",
+    "build": "pnpm --filter @workspace/hael-studio... run build",
     "test": "pnpm --filter @workspace/api-server run build && node --test tests/*.test.mjs",
     "test:backend": "pnpm --filter @workspace/api-server run build && node --test tests/hael-studio-api.test.mjs tests/hael-studio-postgres.test.mjs",
     "typecheck:libs": "tsc --build",
-    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck"
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "build:all": "pnpm run typecheck && pnpm -r --if-present run build"
   },
   "private": true,
   "dependencies": {
@@ -17,5 +18,9 @@
   "devDependencies": {
     "prettier": "^3.9.6",
     "typescript": "~5.9.3"
+  },
+  "packageManager": "pnpm@12.8.1",
+  "engines": {
+    "node": "22"
   }
 }
