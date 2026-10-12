@@ -6,7 +6,7 @@ import {
   ListRuntimeEventsResponse,
   ListRuntimeScenariosResponse,
 } from "@workspace/api-zod";
-import { readRuntimeEvents, saveRuntimeEvent } from "../lib/workspaceRepository";
+import { readRuntimeEvents, saveRuntimeEvent } from "../lib/workspaceRepository.js";
 
 const router: IRouter = Router();
 

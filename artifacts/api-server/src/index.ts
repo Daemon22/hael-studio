@@ -1,10 +1,10 @@
 import { once } from "node:events";
-import app from "./app";
-import { logger } from "./lib/logger";
+import app from "./app.js";
+import { logger } from "./lib/logger.js";
 import {
   closeWorkspaceRepository,
   initializeWorkspaceRepository,
-} from "./lib/workspaceRepository";
+} from "./lib/workspaceRepository.js";
 
 const rawPort = process.env["PORT"];
 

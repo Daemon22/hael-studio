@@ -5,7 +5,7 @@ import type {
   WorkspaceMessage,
   WorkspaceSnapshot,
 } from "@workspace/api-zod";
-import { initialWorkspace } from "./workspaceSeed";
+import { initialWorkspace } from "./workspaceSeed.js";
 
 const workspaceId = initialWorkspace.id;
 let memoryWorkspace = structuredClone(initialWorkspace);

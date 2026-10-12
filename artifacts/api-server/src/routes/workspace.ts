@@ -18,8 +18,8 @@ import {
   saveReviewRequest,
   saveStudioRuntimeState,
   saveWorkspaceMessage,
-} from "../lib/workspaceRepository";
-import { initialWorkspace } from "../lib/workspaceSeed";
+} from "../lib/workspaceRepository.js";
+import { initialWorkspace } from "../lib/workspaceSeed.js";
 
 const router: IRouter = Router();
 const workspaceId = initialWorkspace.id;
