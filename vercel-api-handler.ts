@@ -1,6 +1,6 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
-import app from "./artifacts/api-server/src/app";
-import { initializeWorkspaceRepository } from "./artifacts/api-server/src/lib/workspaceRepository";
+import app from "./artifacts/api-server/src/app.js";
+import { initializeWorkspaceRepository } from "./artifacts/api-server/src/lib/workspaceRepository.js";
 
 type VercelResponse = ServerResponse & {
   status(code: number): VercelResponse;
