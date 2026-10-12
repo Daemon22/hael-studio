@@ -192,6 +192,8 @@ function mapWorkspaceNodes(apiNodes: WorkspaceNode[]): Node[] {
 
 function mapScenario(scenario: RuntimeScenario): Scenario {
   return {
+    id: scenario.id,
+    description: scenario.description,
     title: scenario.title,
     duration: scenario.duration,
     events: scenario.events.map((event) => ({ ...event, tone: event.tone })),
