@@ -1,3 +1,3 @@
-import handler from "../vercel-api-handler";
+import handler from "../vercel-api-handler.js";
 
 export default handler;
