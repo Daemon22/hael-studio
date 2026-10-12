@@ -1,6 +1,6 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "installCommand": "pnpm install --frozen-lockfile",
-  "buildCommand": "pnpm --filter @workspace/hael-studio... run build",
+  "buildCommand": "pnpm run build",
   "outputDirectory": "artifacts/hael-studio/dist/public"
 }
