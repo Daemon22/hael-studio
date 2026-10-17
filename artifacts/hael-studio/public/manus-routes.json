@@ -1,0 +1,6 @@
+{
+  "routes": [
+    { "path": "/", "title": "Hael Studio" },
+    { "path": "/orren/index.html", "title": "Orren Visual Hub — read-only example" }
+  ]
+}

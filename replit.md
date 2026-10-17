@@ -37,6 +37,7 @@ Postgres integration tests are opt-in and intentionally use a separate `HAEL_TES
 ## Where things live
 
 - `artifacts/hael-studio` — React studio, shell, canvas, lifecycle, state engine, and runtime inspector.
+- `artifacts/hael-studio/public/orren` — isolated, read-only static Orren Visual Hub sample; source and integration limits are recorded in `docs/integrations/orren-visual-hub.md`.
 - `artifacts/api-server` — Express API and workspace persistence boundary.
 - `lib/api-spec/openapi.yaml` — source of truth for HTTP operations and payloads.
 - `lib/api-zod` and `lib/api-client-react` — generated validation contracts and React Query client.
@@ -49,6 +50,7 @@ Postgres integration tests are opt-in and intentionally use a separate `HAEL_TES
 - The browser and API share the OpenAPI contract; request bodies and responses are validated with generated Zod schemas.
 - Lifecycle simulation is a deterministic studio model. It stays separate from executing or deploying a user's application.
 - The API persists the workspace snapshot, conversation messages, review requests, authored runtime events, and versioned live-construction state when Postgres is configured.
+- The Orren Visual Hub is served as a separate static sample and does not call Studio APIs or share `StateEngine`; Orren remains the SIR authority. Live coupling is gated on authentication, persistence, a versioned workspace/revision contract, provenance, and verified realization output.
 - Runtime-state writes use optimistic revision checks so parallel studio sessions cannot silently overwrite each other's state.
 - The `(workspace_id, created_at)` indexes on messages and authored runtime events support the API's workspace-filtered chronological reads. Reviews are write-only today and have no speculative secondary index.
 - Scenarios are authored fixtures; user-injected events are separate records so scenario definitions remain stable.

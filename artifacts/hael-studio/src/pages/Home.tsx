@@ -624,6 +624,9 @@ function launchApp() { send({ type: "lifecycle", event: { type: "LAUNCH" } }); s
           </div>
           <div className="presence"><Avatar initials="AM" tone="gold" /><Avatar initials="SK" tone="green" /><span className="presence-more">+2</span><span className="presence-label">4 present</span></div>
           <Button className="icon-button soft-button" size="icon" aria-label="Search"><Search size={17} /></Button>
+          <Button asChild variant="outline" size="sm" className="soft-button">
+            <a href="/orren/index.html" target="_blank" rel="noopener noreferrer" aria-label="Open Orren Visual Hub" title="Orren Visual Hub · static read-only sample"><Network size={14} /><span>Orren Hub</span><ArrowUpRight size={12} /></a>
+          </Button>
           <Button className="icon-button soft-button" size="icon" aria-label="Settings"><Settings2 size={17} /></Button>
            <Button className="release-button" onClick={requestReview} disabled={createReview.isPending} data-testid="button-request-review"><GitCommitHorizontal size={16} /> {reviewRequested ? "Review queued" : createReview.isPending ? "Queuing…" : "Request review"} <ArrowUpRight size={15} /></Button>
         </div>
