@@ -1,0 +1,49 @@
+{
+  "schema": "hael.canonical-visual-assets.v1",
+  "status": "assignment-recorded-binary-upload-pending",
+  "authority": "Founder-supplied original files; exact bytes are canonical.",
+  "policy": {
+    "never_regenerate": true,
+    "never_replace_with_lookalikes": true,
+    "never_reencode_or_crop_canonical_sources": true,
+    "on_missing_asset": "Show an explicit missing-canonical-asset state; never silently substitute."
+  },
+  "repository": "Daemon22/hael-studio",
+  "assets": [
+    {
+      "id": "SIRE_PRIVATE_GENESIS",
+      "identity": "SIRE",
+      "role": "Personal Genesis Boundary — Mother of the Inner Line",
+      "source_filename": "SIRE_Private_Genesis.png",
+      "canonical_path": "artifacts/hael-studio/public/intelligences/SIRE/SIRE_Private_Genesis.png",
+      "sha256": "1c11ee06e962a9a5dc2f878f0eb3e1cf9a94113c8b8083deb703abf18fda5cb2",
+      "visual_identity": "Red, gold, and green; founder-supplied face, features, braids, and symbols immutable.",
+      "binary_upload": "pending"
+    },
+    {
+      "id": "ERIS_PUBLIC_GENESIS",
+      "identity": "ERIS",
+      "role": "Public Genesis Boundary — Mother of the Outer Line",
+      "source_filename": "ERIS_Public_Genesis.png",
+      "canonical_path": "artifacts/hael-studio/public/intelligences/ERIS/ERIS_Public_Genesis.png",
+      "sha256": "6ca5c917bb73b08f625a03271911875daad7b9ad926d5f1fab037045463f6d03",
+      "visual_identity": "Violet, silver, and lunar; founder-supplied face, features, braids, and symbols immutable.",
+      "binary_upload": "pending"
+    },
+    {
+      "id": "SIRE_ERIS_PAIRED_CORRECTED",
+      "identity": "SIRE + ERIS",
+      "role": "Corrected paired canonical composition",
+      "source_filename": "SIRE_ERIS_Paired_Corrected.png",
+      "canonical_path": "artifacts/hael-studio/public/intelligences/SIRE-ERIS/SIRE_ERIS_Paired_Corrected.png",
+      "sha256": "77b145c67641240ee974c390c3092b200c5dc232ef0d465994c57aecad5e1010",
+      "visual_identity": "The exact founder-supplied paired composition; do not recreate either portrait.",
+      "binary_upload": "pending"
+    }
+  ],
+  "repository_assignment_notes": [
+    "SIRE is implemented in HAEL Studio / SIRE Console.",
+    "ERIS has no dedicated repository recorded in the HAEL registry, so her canonical source is assigned to HAEL Studio alongside SIRE until a dedicated ERIS repository is created.",
+    "This manifest assigns destination paths but does not claim the binary image files have been committed. Verify the SHA-256 after binary upload before changing binary_upload to complete."
+  ]
+}
