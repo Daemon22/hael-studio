@@ -1,0 +1,43 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "schema": "hael.intelligence-avatar-lock.v1",
+  "policy": {
+    "avatar_identity": "permanent",
+    "face_changes": "prohibited",
+    "allowed_changes": [
+      "surroundings",
+      "clothing",
+      "pose",
+      "activity",
+      "representation"
+    ],
+    "logo_evolution": "logos and symbols may evolve separately from identity portraits",
+    "shared_asset_rule": "paired artwork must remain in shared/ and must not be assigned as either individual portrait"
+  },
+  "identities": [
+    {
+      "entity": "SIRE Daemon",
+      "key": "SIRE",
+      "visibility": "private",
+      "role": "Mother of the Inner Line",
+      "avatar": "artifacts/hael-studio/public/intelligences/SIRE/SIRE_Private_Genesis.png",
+      "sha256": "030fe070e97edb2ef2c15527d50b03374ce47ad412ac4b56f545d9931b27dc4a"
+    },
+    {
+      "entity": "ERIS Daemon",
+      "key": "ERIS",
+      "visibility": "public",
+      "role": "Mother of the Outer Line",
+      "avatar": "artifacts/hael-studio/public/intelligences/ERIS/ERIS_Public_Genesis.png",
+      "sha256": "c20732af7e479b3f74e50e6c1eb1eb610b2264b70c54b7e05013c27756fce96c"
+    }
+  ],
+  "shared_artwork": [
+    {
+      "name": "SIRE and ERIS paired corrected composition",
+      "path": "artifacts/hael-studio/public/intelligences/shared/SIRE_ERIS_Paired_Corrected.png",
+      "sha256": "36a9cc7637b9ec2ed028d10a554c688972a61264d0343cde66bd06b024a5474f",
+      "is_avatar": false
+    }
+  ]
+}
