@@ -7,16 +7,801 @@ info:
 servers:
   - url: /api
     description: Base API path
+security:
+  - bearerAuth: []
+  - studioSessionCookie: []
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Studio identity and session operations
+  - name: projects
+    description: Project membership and selection
   - name: workspace
     description: Hael Studio workspace operations
   - name: runtime
     description: Runtime scenario operations
+  - name: orren
+    description: Orren semantic engine bridge
 paths:
+  /auth/login:
+    get:
+      security: []
+      operationId: beginStudioLogin
+      tags: [auth]
+      summary: Begin the configured OpenID Connect sign-in flow
+      responses:
+        "302":
+          description: Redirect to the identity provider
+        "503":
+          description: Identity provider is unavailable or misconfigured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /auth/callback:
+    get:
+      security: []
+      operationId: completeStudioLogin
+      tags: [auth]
+      summary: Complete the OpenID Connect authorization code flow
+      parameters:
+        - name: code
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: state
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        "303":
+          description: Set the Studio session cookie and return to Studio
+        "400":
+          description: Login state did not match the browser session
+        "401":
+          description: Identity token exchange or validation failed
+  /auth/session:
+    get:
+      operationId: getStudioSession
+      tags: [auth]
+      summary: Read the current authenticated subject
+      responses:
+        "200":
+          description: Authenticated Studio subject
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  subject:
+                    type: string
+                required: [subject]
+        "401":
+          description: Authentication required
+  /auth/logout:
+    post:
+      operationId: endStudioSession
+      tags: [auth]
+      summary: Clear the browser's Studio session cookie
+      responses:
+        "204":
+          description: Session cookie cleared
+  /projects:
+    get:
+      operationId: listProjects
+      tags: [projects]
+      summary: List projects available to the signed-in user
+      responses:
+        "200":
+          description: Projects and the caller's project role
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectSummary"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    post:
+      operationId: createProject
+      tags: [projects]
+      summary: Create a project owned by the signed-in user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateProjectInput"
+      responses:
+        "201":
+          description: Created project
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectSummary"
+        "400":
+          description: Invalid project name
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/workspace:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+    get:
+      operationId: getProjectWorkspace
+      tags: [workspace]
+      summary: Read a project workspace the caller can access
+      responses:
+        "200":
+          description: Authorized workspace snapshot
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceSnapshot"
+        "404":
+          description: Project not found or inaccessible
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/terminal:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+      - name: cwd
+        in: query
+        required: false
+        description: Project-relative current directory; absolute paths and parent traversal are rejected.
+        schema:
+          type: string
+          maxLength: 1000
+    get:
+      operationId: getProjectTerminal
+      tags: [workspace]
+      summary: Read the current directory and entries in the project-scoped command workspace
+      responses:
+        "200":
+          description: Current project directory and visible entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTerminalSnapshot"
+        "400":
+          description: Invalid project-relative path
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Project or requested directory not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "503":
+          description: Isolated project workspace is not configured
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/terminal/command:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 1
+          maxLength: 128
+    post:
+      operationId: runProjectTerminalCommand
+      tags: [workspace]
+      summary: Parse and run an allowlisted project command or return a mutation confirmation preview
+      description: Raw shell text is never executed. Only the supported command grammar for project navigation, file listing, archive extraction, and public GitHub cloning is accepted. Mutating actions require confirm=true after reviewing the preview.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectTerminalCommandInput"
+      responses:
+        "200":
+          description: Command result or a confirmation preview for a file mutation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectTerminalCommandResult"
+        "400":
+          description: Unsupported or invalid command
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "401":
+          description: Authentication required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "403":
+          description: Project editor role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/terminal/archive:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: cwd
+        in: query
+        required: false
+        schema:
+          type: string
+          maxLength: 1000
+      - name: name
+        in: query
+        required: true
+        schema:
+          type: string
+          maxLength: 180
+    put:
+      operationId: addProjectTerminalArchive
+      tags: [workspace]
+      summary: Add a ZIP archive to the current project directory
+      requestBody:
+        required: true
+        content:
+          application/octet-stream:
+            schema:
+              type: string
+              format: binary
+              maxLength: 67108864
+      responses:
+        "201":
+          description: Archive added to the project workspace
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status: { type: string, enum: [completed] }
+                  cwd: { type: string }
+                  name: { type: string }
+                  size: { type: integer }
+                required: [status, cwd, name, size]
+        "400":
+          description: Archive is invalid or too large
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/memberships:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: listProjectMemberships
+      tags: [projects]
+      summary: List project members (owner and admin only)
+      responses:
+        "200":
+          description: Project membership records
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/ProjectMembership" }
+        "403":
+          description: Project owner or admin role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    post:
+      operationId: grantProjectMembership
+      tags: [projects]
+      summary: Grant an authorized user a project role
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ProjectMembershipInput"
+      responses:
+        "201":
+          description: Membership granted
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProjectMembership"
+        "403":
+          description: Owner or admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/memberships/{subject}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: subject
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 255 }
+    delete:
+      operationId: revokeProjectMembership
+      tags: [projects]
+      summary: Revoke a project role without allowing owner removal
+      responses:
+        "204":
+          description: Membership revoked
+        "403":
+          description: Owner or admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: Ownership transfer is required before removing an owner
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/audit:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+      - name: limit
+        in: query
+        required: false
+        schema:
+          type: integer
+          minimum: 1
+          maximum: 250
+          default: 100
+    get:
+      operationId: listProjectAuditEvents
+      tags: [projects]
+      summary: Read recent project audit history (owner and admin only)
+      responses:
+        "200":
+          description: Newest project audit events first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/ProjectAuditEvent"
+        "403":
+          description: Project owner or admin role required
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /projects/{projectId}/repository:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    get:
+      operationId: getProjectRepository
+      tags: [projects]
+      summary: Read a project's GitHub repository binding and current branch head
+      responses:
+        "200":
+          description: Repository binding or an unconnected project
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectRepository" }
+        "503":
+          description: The configured GitHub repository cannot be read right now
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    put:
+      operationId: connectProjectRepository
+      tags: [projects]
+      summary: Bind a GitHub repository and branch to the project (owner/admin only)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/ProjectRepositoryInput" }
+      responses:
+        "200":
+          description: Repository connected and branch head verified through GitHub
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ProjectRepository" }
+        "403":
+          description: Project owner or admin role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "422":
+          description: GitHub could not verify access to the selected repository branch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "503":
+          description: GitHub is temporarily unavailable
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+    delete:
+      operationId: disconnectProjectRepository
+      tags: [projects]
+      summary: Remove the project's GitHub repository binding (owner/admin only)
+      responses:
+        "204": { description: Repository disconnected }
+        "403":
+          description: Project owner or admin role required
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+  /projects/{projectId}/builds:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+    get:
+      operationId: listProjectBuilds
+      tags: [runtime]
+      summary: List durable project build and preview jobs
+      responses:
+        "200":
+          description: Recent builds, newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/BuildJob" }
+    post:
+      operationId: createProjectBuild
+      tags: [runtime]
+      summary: Request an isolated build for a pinned source and Orren artifact manifest
+      parameters:
+        - name: Idempotency-Key
+          in: header
+          required: true
+          schema: { type: string, minLength: 8, maxLength: 128 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/CreateBuildInput" }
+      responses:
+        "202":
+          description: Runner accepted the isolated build job
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuildJob" }
+        "409":
+          description: Semantic revision changed, artifacts are unavailable, repository is not connected, or idempotency key conflicts
+        "422":
+          description: The source commit is not present in the connected repository branch
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/ErrorResponse" }
+        "503":
+          description: Orren is unavailable, or the isolated runner rejected the durable job
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: "#/components/schemas/ErrorResponse"
+                  - $ref: "#/components/schemas/BuildFailure"
+  /projects/{projectId}/builds/{buildId}:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: buildId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: getProjectBuild
+      tags: [runtime]
+      summary: Read a project build and refresh its runner status
+      responses:
+        "200":
+          description: Durable project build
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuildJob" }
+        "404":
+          description: Build not found in this project
+  /projects/{projectId}/builds/{buildId}/retry:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: buildId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: retryProjectBuild
+      tags: [runtime]
+      summary: Retry a build rejected before runner acceptance
+      responses:
+        "202":
+          description: Runner accepted the retry
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuildJob" }
+  /projects/{projectId}/builds/{buildId}/cancel:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: buildId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    post:
+      operationId: cancelProjectBuild
+      tags: [runtime]
+      summary: Cancel an active isolated build
+      responses:
+        "200":
+          description: Updated build status
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/BuildJob" }
+  /projects/{projectId}/builds/{buildId}/observations:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema: { type: string }
+      - name: buildId
+        in: path
+        required: true
+        schema: { type: string, format: uuid }
+    get:
+      operationId: listBuildRuntimeObservations
+      tags: [runtime]
+      summary: Read ordered runtime observations with build provenance
+      responses:
+        "200":
+          description: Observations tied to verified build outputs
+          content:
+            application/json:
+              schema:
+                type: array
+                items: { $ref: "#/components/schemas/RuntimeObservation" }
+    post:
+      operationId: recordBuildRuntimeObservation
+      tags: [runtime]
+      summary: Record a runtime observation tied to an emitted artifact hash
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RuntimeObservationInput" }
+      responses:
+        "201":
+          description: Provenance observation recorded
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/RuntimeObservation" }
+        "409":
+          description: Build or manifest provenance mismatch
+  /runtime/provenance:
+    post:
+      security:
+        - bearerAuth: []
+      operationId: reportPreviewRuntimeObservation
+      tags: [runtime]
+      summary: Report a preview runtime event using a build-scoped capability
+      description: The runner embeds a short-lived capability in the preview. Studio accepts events only when artifact path, hash, and runtime identity match the successful build manifest.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: "#/components/schemas/RuntimeObservationInput" }
+      responses:
+        "201":
+          description: Observation recorded
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accepted: { type: boolean, const: true }
+                  sequence: { type: integer }
+                required: [accepted, sequence]
+        "401":
+          description: Capability missing, invalid, or expired
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrrenErrorResponse" }
+        "409":
+          description: Event did not match the successful build's manifest or sequence
+  /projects/{projectId}/workspace/runtime-state:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: getProjectRuntimeState
+      tags: [workspace]
+      summary: Read project-scoped live runtime state
+      responses:
+        "200":
+          description: Project runtime state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceRuntimeState"
+        "404":
+          description: Project inaccessible or state not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+    put:
+      operationId: saveProjectRuntimeState
+      tags: [workspace]
+      summary: Save project runtime state with revision checks
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceRuntimeStateInput"
+      responses:
+        "200":
+          description: Saved project runtime state
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceRuntimeState"
+        "409":
+          description: Runtime state revision conflict
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeStateConflictResponse"
+  /projects/{projectId}/workspace/messages:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: createProjectWorkspaceMessage
+      tags: [workspace]
+      summary: Add a message to an authorized project's conversation
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/WorkspaceMessageInput"
+      responses:
+        "201":
+          description: Created message
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WorkspaceMessage"
+  /projects/{projectId}/workspace/reviews:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    post:
+      operationId: createProjectReviewRequest
+      tags: [workspace]
+      summary: Request a review for an authorized project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ReviewRequestInput"
+      responses:
+        "201":
+          description: Created review request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ReviewRequest"
+  /projects/{projectId}/runtime/events:
+    parameters:
+      - name: projectId
+        in: path
+        required: true
+        schema:
+          type: string
+    get:
+      operationId: listProjectRuntimeEvents
+      tags: [runtime]
+      summary: Read runtime events from an authorized project
+      responses:
+        "200":
+          description: Project runtime event stream snapshot
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/RuntimeEvent"
+    post:
+      operationId: injectProjectRuntimeEvent
+      tags: [runtime]
+      summary: Add a runtime event to an authorized project
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RuntimeEventInput"
+      responses:
+        "201":
+          description: Created runtime event
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RuntimeEvent"
   /healthz:
     get:
+      security: []
       operationId: healthCheck
       tags: [health]
       summary: Health check
@@ -29,6 +814,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
   /workspace:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project; omitted requests use the seeded project.
+        schema:
+          type: string
     get:
       operationId: getWorkspace
       tags: [workspace]
@@ -41,6 +833,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/WorkspaceSnapshot"
   /workspace/runtime-state:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project; omitted requests use the seeded project.
+        schema:
+          type: string
     get:
       operationId: getWorkspaceRuntimeState
       tags: [workspace]
@@ -88,6 +887,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/RuntimeStateConflictResponse"
   /workspace/messages:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project; omitted requests use the seeded project.
+        schema:
+          type: string
     post:
       operationId: createWorkspaceMessage
       tags: [workspace]
@@ -112,6 +918,13 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
   /workspace/reviews:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project; omitted requests use the seeded project.
+        schema:
+          type: string
     post:
       operationId: createReviewRequest
       tags: [workspace]
@@ -149,7 +962,107 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/RuntimeScenario"
+  /orren/health:
+    get:
+      operationId: getOrrenHealth
+      tags: [orren]
+      summary: Check the configured Orren Engine connection
+      responses:
+        "200":
+          description: Orren Engine status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenHealthEnvelope"
+        "503":
+          description: Orren Engine unavailable or bridge disabled until project authorization exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenErrorResponse"
+  /orren/field:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project. The v1 Orren adapter resolves a durable project session.
+        schema: { type: string, minLength: 1, maxLength: 128 }
+    get:
+      operationId: getOrrenField
+      tags: [orren]
+      summary: Read the current Orren semantic field
+      responses:
+        "200":
+          description: Current in-memory Orren SIR field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenFieldEnvelope"
+        "503":
+          description: Orren Engine unavailable or bridge disabled until project authorization exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenErrorResponse"
+  /orren/action:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project semantic session.
+        schema: { type: string, minLength: 1, maxLength: 128 }
+      - name: If-Match
+        in: header
+        required: false
+        description: Required by the versioned Orren adapter; semantic revision observed by the caller.
+        schema: { type: string, pattern: '^"?[0-9]+"?$' }
+      - name: Idempotency-Key
+        in: header
+        required: false
+        description: Required by the versioned Orren adapter; stable across retries of the same command.
+        schema: { type: string, minLength: 8, maxLength: 128 }
+    post:
+      operationId: applyOrrenAction
+      tags: [orren]
+      summary: Apply an explicitly requested semantic action to Orren
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OrrenActionInput"
+      responses:
+        "200":
+          description: Updated semantic field
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenFieldEnvelope"
+        "400":
+          description: Invalid or rejected semantic action
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenErrorResponse"
+        "409":
+          description: Semantic revision conflict or idempotency key reuse
+          content:
+            application/json:
+              schema: { $ref: "#/components/schemas/OrrenErrorResponse" }
+        "503":
+          description: Orren Engine unavailable or bridge disabled until project authorization exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OrrenErrorResponse"
   /runtime/events:
+    parameters:
+      - name: X-Studio-Project-Id
+        in: header
+        required: false
+        description: Select an authorized project; omitted requests use the seeded project.
+        schema:
+          type: string
     get:
       operationId: listRuntimeEvents
       tags: [runtime]
@@ -187,7 +1100,302 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    studioSessionCookie:
+      type: apiKey
+      in: cookie
+      name: hael_studio_session
   schemas:
+    ProjectTerminalEntry:
+      type: object
+      properties:
+        name:
+          type: string
+        kind:
+          type: string
+          enum: [folder, file]
+        size:
+          type: integer
+          minimum: 0
+      required: [name, kind]
+    ProjectTerminalSnapshot:
+      type: object
+      properties:
+        workspace:
+          type: string
+        cwd:
+          type: string
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/ProjectTerminalEntry"
+      required: [workspace, cwd, entries]
+    ProjectTerminalCommandInput:
+      type: object
+      properties:
+        input:
+          type: string
+          minLength: 1
+          maxLength: 500
+        cwd:
+          type: string
+          maxLength: 1000
+        confirm:
+          type: boolean
+      required: [input]
+    ProjectTerminalCommandResult:
+      type: object
+      properties:
+        status:
+          type: string
+          enum: [confirmation_required, completed]
+        command:
+          type: object
+          additionalProperties: true
+        preview:
+          type: string
+        cwd:
+          type: string
+        message:
+          type: string
+      required: [status, command]
+    ProjectSummary:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, editor, viewer]
+      required: [id, name, role]
+    CreateProjectInput:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 80
+      required: [name]
+    ProjectMembershipInput:
+      type: object
+      properties:
+        subject:
+          type: string
+          minLength: 1
+          maxLength: 255
+        role:
+          type: string
+          enum: [admin, editor, viewer]
+      required: [subject, role]
+    ProjectMembership:
+      type: object
+      properties:
+        projectId:
+          type: string
+        subject:
+          type: string
+        role:
+          type: string
+          enum: [owner, admin, editor, viewer]
+        grantedBy: { type: string }
+        createdAt: { type: string, format: date-time }
+      required: [subject, role]
+    ProjectAuditEvent:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string }
+        actorSubject: { type: string }
+        action: { type: string }
+        resourceType: { type: string }
+        resourceId: { type: string, nullable: true }
+        requestId: { type: string }
+        outcome: { type: string, enum: [succeeded, rejected] }
+        metadata: { type: object, additionalProperties: true }
+        createdAt: { type: string, format: date-time }
+      required: [id, projectId, actorSubject, action, resourceType, requestId, outcome, metadata, createdAt]
+    ProjectRepositoryInput:
+      type: object
+      additionalProperties: false
+      properties:
+        repository: { type: string, pattern: "^[A-Za-z0-9_.-]{1,100}/[A-Za-z0-9_.-]{1,100}$" }
+        branch: { type: string, minLength: 1, maxLength: 128 }
+      required: [repository, branch]
+    ProjectRepository:
+      type: object
+      properties:
+        connected: { type: boolean }
+        projectId: { type: string }
+        provider: { type: string, enum: [github] }
+        repository: { type: string }
+        branch: { type: string }
+        connectedBy: { type: string }
+        updatedAt: { type: string, format: date-time }
+        headCommit: { type: string, pattern: "^[a-f0-9]{40}$" }
+        commitUrl: { type: string, format: uri }
+      required: [connected]
+    CreateBuildInput:
+      type: object
+      properties:
+        sourceCommit: { type: string, pattern: "^(?:[a-fA-F0-9]{40}|[a-fA-F0-9]{64})$" }
+        semanticRevision: { type: integer, minimum: 0 }
+        artifactManifestHash: { type: string, pattern: "^[a-fA-F0-9]{64}$" }
+      required: [sourceCommit, semanticRevision, artifactManifestHash]
+    BuildManifestEntry:
+      type: object
+      properties:
+        path: { type: string }
+        sha256: { type: string, pattern: "^[a-f0-9]{64}$" }
+        semanticNodeIds: { type: array, items: { type: string } }
+        runtimeIds: { type: array, items: { type: string } }
+      required: [path, sha256, semanticNodeIds, runtimeIds]
+    BuildJob:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        projectId: { type: string }
+        requestedBy: { type: string }
+        sourceRepository: { type: string }
+        sourceBranch: { type: string }
+        sourceCommit: { type: string }
+        semanticRevision: { type: integer }
+        artifactManifestHash: { type: string }
+        status: { type: string, enum: [queued, running, succeeded, failed, cancelled] }
+        retryable: { type: boolean }
+        cancelable: { type: boolean }
+        previewUrl: { type: string, format: uri }
+        outputManifest: { type: array, items: { $ref: "#/components/schemas/BuildManifestEntry" } }
+        diagnostics: { type: string }
+        createdAt: { type: string, format: date-time }
+        startedAt: { type: string, format: date-time }
+        finishedAt: { type: string, format: date-time }
+      required: [id, projectId, requestedBy, sourceCommit, semanticRevision, artifactManifestHash, status, retryable, cancelable, outputManifest, createdAt]
+    BuildFailure:
+      type: object
+      properties:
+        error: { type: string }
+        build: { $ref: "#/components/schemas/BuildJob" }
+      required: [error, build]
+    RuntimeObservationInput:
+      type: object
+      properties:
+        streamId: { type: string, minLength: 8, maxLength: 128 }
+        sequence: { type: integer, minimum: 0 }
+        runtimeId: { type: string, minLength: 1, maxLength: 160 }
+        eventType: { type: string, enum: [hmr_update, runtime_error, dependency_degraded, lifecycle] }
+        artifactPath: { type: string, minLength: 1, maxLength: 512 }
+        artifactHash: { type: string, pattern: "^[a-fA-F0-9]{64}$" }
+        detail: { type: string, maxLength: 1000 }
+      required: [sequence, runtimeId, eventType, artifactPath, artifactHash]
+    RuntimeObservation:
+      allOf:
+        - $ref: "#/components/schemas/RuntimeObservationInput"
+        - type: object
+          properties:
+            id: { type: string, format: uuid }
+            projectId: { type: string }
+            buildId: { type: string, format: uuid }
+            actorSubject: { type: string }
+            streamId: { type: string }
+            semanticNodeIds: { type: array, items: { type: string } }
+            observedAt: { type: string, format: date-time }
+          required: [id, projectId, buildId, actorSubject, streamId, semanticNodeIds, observedAt]
+    OrrenErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        code:
+          type: string
+      required: [error]
+    OrrenHealthEnvelope:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        runtime:
+          type: object
+          additionalProperties: true
+      required: [connected, runtime]
+    OrrenFieldEnvelope:
+      type: object
+      properties:
+        connected:
+          type: boolean
+        projectId: { type: string }
+        revision: { type: integer, minimum: 0 }
+        field:
+          type: object
+          additionalProperties: true
+      required: [connected, field]
+    OrrenActionInput:
+      oneOf:
+        - type: object
+          properties:
+            action: { const: reset }
+            mode: { type: string, enum: [example, empty] }
+          required: [action, mode]
+        - type: object
+          properties:
+            action: { const: realize }
+            nodeId: { type: string, maxLength: 160 }
+          required: [action]
+        - type: object
+          properties:
+            action: { const: create }
+            name: { type: string, minLength: 1, maxLength: 48 }
+            parentId: { type: string, maxLength: 160 }
+          required: [action, name]
+        - type: object
+          properties:
+            action: { const: variable }
+            name: { type: string, minLength: 1, maxLength: 48 }
+            valueType: { type: string, enum: [text, number, boolean, date, list, object] }
+            parentId: { type: string, maxLength: 160 }
+          required: [action, name, valueType]
+        - type: object
+          properties:
+            action: { const: rule }
+            name: { type: string, minLength: 1, maxLength: 48 }
+            condition: { type: string, minLength: 1, maxLength: 180 }
+            parentId: { type: string, maxLength: 160 }
+          required: [action, name, condition]
+        - type: object
+          properties:
+            action: { const: behavior }
+            nodeId: { type: string, minLength: 1, maxLength: 160 }
+            text: { type: string, minLength: 1, maxLength: 180 }
+          required: [action, nodeId, text]
+        - type: object
+          properties:
+            action: { const: move }
+            nodeId: { type: string, minLength: 1, maxLength: 160 }
+            parentId: { type: string, minLength: 1, maxLength: 160 }
+          required: [action, nodeId, parentId]
+        - type: object
+          properties:
+            action: { const: relate }
+            from: { type: string, minLength: 1, maxLength: 160 }
+            to: { type: string, minLength: 1, maxLength: 160 }
+            type: { type: string, enum: [feeds, triggers, produces, depends_on] }
+            note: { type: string, maxLength: 120 }
+          required: [action, from, to, type]
+        - type: object
+          properties:
+            action: { const: add_target }
+            target: { type: string, enum: [web_interface, android_app, rust_core] }
+          required: [action, target]
+        - type: object
+          properties:
+            action: { const: remove_target }
+            target: { type: string, enum: [web_interface, android_app, rust_core] }
+          required: [action, target]
     HealthStatus:
       type: object
       properties:

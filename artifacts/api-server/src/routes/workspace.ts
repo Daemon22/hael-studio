@@ -18,20 +18,26 @@ import {
   saveReviewRequest,
   saveStudioRuntimeState,
   saveWorkspaceMessage,
+  recordProjectAuditEvent,
 } from "../lib/workspaceRepository";
 import { initialWorkspace } from "../lib/workspaceSeed";
+import { authorizeProjectRequest } from "../lib/projectAccess";
 
-const router: IRouter = Router();
-const workspaceId = initialWorkspace.id;
+const router: IRouter = Router({ mergeParams: true });
+router.use(authorizeProjectRequest);
+
+function projectId(res: Parameters<typeof authorizeProjectRequest>[1]) {
+  return res.locals.studioProjectId as string ?? initialWorkspace.id;
+}
 
 router.get("/workspace", async (req, res) => {
-  const workspace = await readWorkspace();
+  const workspace = await readWorkspace(projectId(res));
   req.log.info({ workspaceId: workspace.id }, "Workspace snapshot requested");
   res.json(GetWorkspaceResponse.parse(workspace));
 });
 
 router.get("/workspace/runtime-state", async (_req, res) => {
-  const state = await readStudioRuntimeState();
+  const state = await readStudioRuntimeState(projectId(res));
   if (!state) {
     res.status(404).json({ error: "No runtime state has been saved yet." });
     return;
@@ -50,7 +56,13 @@ router.put("/workspace/runtime-state", async (req, res) => {
     const saved = await saveStudioRuntimeState(
       parsed.data.expectedRevision,
       parsed.data.state,
+      projectId(res),
     );
+    await recordProjectAuditEvent({
+      id: randomUUID(), projectId: projectId(res), actorSubject: (res.locals.studioActor as { subject: string }).subject,
+      action: "workspace.runtime_state.saved", resourceType: "runtime_state", resourceId: String(saved.revision),
+      requestId: String(req.id), metadata: { revision: saved.revision }, outcome: "succeeded",
+    });
     res.json(SaveWorkspaceRuntimeStateResponse.parse(saved));
   } catch (error) {
     if (error instanceof RuntimeStateConflictError) {
@@ -83,8 +95,13 @@ router.post("/workspace/messages", async (req, res) => {
     tone: "human",
     linkedNodeId: parsed.data.target === "orren" ? "orren" : null,
   });
-  await saveWorkspaceMessage(message);
-  req.log.info({ workspaceId, target: parsed.data.target }, "Workspace message created");
+  await saveWorkspaceMessage(message, projectId(res));
+  await recordProjectAuditEvent({
+    id: randomUUID(), projectId: projectId(res), actorSubject: (res.locals.studioActor as { subject: string }).subject,
+    action: "workspace.message.created", resourceType: "message", resourceId: message.id,
+    requestId: String(req.id), metadata: { target: parsed.data.target }, outcome: "succeeded",
+  });
+  req.log.info({ workspaceId: projectId(res), target: parsed.data.target }, "Workspace message created");
   res.status(201).json(message);
 });
 
@@ -102,8 +119,13 @@ router.post("/workspace/reviews", async (req, res) => {
     branch: parsed.data.branch,
     createdAt: new Date().toISOString(),
   });
-  await saveReviewRequest(review);
-  req.log.info({ workspaceId, branch: parsed.data.branch }, "Review request queued");
+  await saveReviewRequest(review, projectId(res));
+  await recordProjectAuditEvent({
+    id: randomUUID(), projectId: projectId(res), actorSubject: (res.locals.studioActor as { subject: string }).subject,
+    action: "workspace.review.requested", resourceType: "review_request", resourceId: review.id,
+    requestId: String(req.id), metadata: { branch: review.branch }, outcome: "succeeded",
+  });
+  req.log.info({ workspaceId: projectId(res), branch: parsed.data.branch }, "Review request queued");
   res.status(201).json(review);
 });
 

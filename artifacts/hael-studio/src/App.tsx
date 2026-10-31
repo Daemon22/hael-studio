@@ -2,7 +2,11 @@ import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
-import Home from "./pages/Home";
+import IntegratedWorkbench from "./pages/IntegratedWorkbench";
+import OrrenHub from "./pages/OrrenHub";
+import ProjectAudit from "./pages/ProjectAudit";
+import ProjectBuilds from "./pages/ProjectBuilds";
+import ProjectMembers from "./pages/ProjectMembers";
 import { lazy, Suspense } from "react";
 import { AppProviders } from "@/app/providers";
 
@@ -11,7 +15,12 @@ const DevRuntime = import.meta.env.DEV ? lazy(() => import("@/runtime/DevRuntime
 function Router() {
   return (
     <Switch>
-      <Route path={"/"} component={Home} />
+      <Route path={"/"} component={IntegratedWorkbench} />
+      <Route path={"/semantic"} component={OrrenHub} />
+      <Route path={"/projects/:projectId/semantic"} component={OrrenHub} />
+      <Route path={"/projects/:projectId/audit"} component={ProjectAudit} />
+      <Route path={"/projects/:projectId/builds"} component={ProjectBuilds} />
+      <Route path={"/projects/:projectId/members"} component={ProjectMembers} />
       <Route path={"/404"} component={NotFound} />
       {/* Final fallback route */}
       <Route component={NotFound} />

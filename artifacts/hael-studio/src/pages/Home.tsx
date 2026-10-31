@@ -1,6 +1,7 @@
 /* Hael Studio — Luminous Codex Workspace. This page keeps semantic intent, live preview, simulation, and accountable agents in one warm, dimensional canvas. */
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useLocation } from "wouter";
 import {
   Activity,
   Eye,
@@ -93,6 +94,7 @@ const canvasArt = "/manus-storage/hael-studio-canvas-art_368e3674.jpg";
 
 type CanvasLayout = "focus" | "relationship";
 type CanvasLayer = "metadata" | "connectors" | "runtime";
+type StudioProject = { id: string; name: string; role: "owner" | "admin" | "editor" | "viewer" };
 type LayerVisibility = Record<CanvasLayer, boolean>;
 
 type EffectKind = "frame" | "audio" | "animation" | "lifecycle" | "interaction";
@@ -192,9 +194,9 @@ function mapWorkspaceNodes(apiNodes: WorkspaceNode[]): Node[] {
 
 function mapScenario(scenario: RuntimeScenario): Scenario {
   return {
-<SidePanel>
+    id: scenario.id,
     title: scenario.title,
-</SidePanel></> : <button className="loom-reopen"
+    description: scenario.description,
     duration: scenario.duration,
     events: scenario.events.map((event) => ({ ...event, tone: event.tone })),
   };
@@ -229,6 +231,7 @@ function NodeCard({ node, selected, showDetails, onSelect }: { node: Node; selec
 }
 
 export default function Home() {
+  const [, setLocation] = useLocation();
   const { state: studio, send } = useStudio();
   const {
     selectedNodeId: selected,
@@ -241,6 +244,36 @@ export default function Home() {
     setSimulationRunning,
   } = useUiStore();
   const queryClient = useQueryClient();
+  const [selectedProjectId, setSelectedProjectId] = useState(() => {
+    try { return window.localStorage.getItem("hael.activeProjectId") ?? ""; } catch { return ""; }
+  });
+  const projectsQuery = useQuery({
+    queryKey: ["projects"],
+    queryFn: async (): Promise<StudioProject[]> => {
+      const response = await fetch("/api/projects");
+      if (!response.ok) throw new Error("Could not load your projects.");
+      return response.json() as Promise<StudioProject[]>;
+    },
+  });
+  const createProjectMutation = useMutation({
+    mutationFn: async (name: string): Promise<StudioProject> => {
+      const response = await fetch("/api/projects", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ name }),
+      });
+      const body = await response.json() as StudioProject | { error?: string };
+      if (!response.ok || !("id" in body)) throw new Error("error" in body ? body.error : "Could not create project.");
+      return body;
+    },
+    onSuccess: async (project) => {
+      try { window.localStorage.setItem("hael.activeProjectId", project.id); } catch { /* Keep the selection in component state. */ }
+      setSelectedProjectId(project.id);
+      await projectsQuery.refetch();
+      await queryClient.cancelQueries();
+      queryClient.removeQueries({ predicate: (query) => !["studio-session", "projects"].includes(String(query.queryKey[0])) });
+    },
+  });
   const workspaceQuery = useGetWorkspace();
   const scenariosQuery = useListRuntimeScenarios();
   const healthQuery = useHealthCheck({ query: { queryKey: getHealthCheckQueryKey() } });
@@ -248,6 +281,30 @@ export default function Home() {
   const createReview = useCreateReviewRequest();
   const injectRuntimeEvent = useInjectRuntimeEvent();
   const workspace = workspaceQuery.data;
+  const projects = projectsQuery.data ?? [];
+  const activeProject = projects.find((project) => project.id === selectedProjectId);
+  useEffect(() => {
+    if (!projects.length || projects.some((project) => project.id === selectedProjectId)) return;
+    const nextProjectId = projects[0]!.id;
+    try { window.localStorage.setItem("hael.activeProjectId", nextProjectId); } catch { /* Selection still works for this view. */ }
+    setSelectedProjectId(nextProjectId);
+    void (async () => {
+      await queryClient.cancelQueries();
+      queryClient.removeQueries({ predicate: (query) => !["studio-session", "projects"].includes(String(query.queryKey[0])) });
+    })();
+  }, [projects, queryClient, selectedProjectId]);
+  const selectProject = (projectId: string) => {
+    try { window.localStorage.setItem("hael.activeProjectId", projectId); } catch { /* Keep the selection in component state. */ }
+    setSelectedProjectId(projectId);
+    void (async () => {
+      await queryClient.cancelQueries();
+      queryClient.removeQueries({ predicate: (query) => !["studio-session", "projects"].includes(String(query.queryKey[0])) });
+    })();
+  };
+  const addProject = () => {
+    const name = window.prompt("Name your new project");
+    if (name?.trim()) createProjectMutation.mutate(name.trim());
+  };
   const apiScenarios = useMemo(
     () => normalizeScenarios(scenariosQuery.data).map(mapScenario),
     [scenariosQuery.data],
@@ -613,8 +670,12 @@ function launchApp() { send({ type: "lifecycle", event: { type: "LAUNCH" } }); s
           <div className="brand-mark-wrap"><img src={markUrl} alt="Hael Studio mark" /></div>
           <div><p className="brand-name">HAEL <span>STUDIO</span></p><p className="brand-subtitle">The intelligence workspace</p></div>
         </div>
-        <div className="project-switcher"><span className="eyebrow">Workspace</span><strong>{workspace?.name ?? "Gqobonco / Lineage"}</strong><ChevronDown size={14} /></div>
+        <div className="project-switcher"><span className="eyebrow">Workspace</span><select aria-label="Active project" value={selectedProjectId} onChange={(event) => selectProject(event.target.value)} disabled={projectsQuery.isLoading || projects.length === 0}>{projects.length ? projects.map((project) => <option key={project.id} value={project.id}>{project.name}</option>) : <option value="">{workspace?.name ?? "Gqobonco / Lineage"}</option>}</select><button type="button" aria-label="Create project" title={createProjectMutation.error instanceof Error ? createProjectMutation.error.message : "Create project"} onClick={addProject} disabled={createProjectMutation.isPending}><Plus size={14} /></button><ChevronDown size={14} /></div>
         <div className="topbar-actions">
+          <Button variant="outline" size="sm" className="orren-open-button" onClick={() => setLocation(`/projects/${encodeURIComponent(selectedProjectId || "default")}/semantic`)}><Network size={14} /> Orren</Button>
+          <Button variant="outline" size="sm" className="orren-open-button" onClick={() => setLocation(`/projects/${encodeURIComponent(selectedProjectId || "default")}/builds`)}><Hammer size={14} /> Builds</Button>
+          {(activeProject?.role === "owner" || activeProject?.role === "admin") && <Button variant="outline" size="sm" className="orren-open-button" onClick={() => setLocation(`/projects/${encodeURIComponent(selectedProjectId)}/members`)}><UsersRound size={14} /> Members</Button>}
+          {(activeProject?.role === "owner" || activeProject?.role === "admin") && <Button variant="outline" size="sm" className="orren-open-button" onClick={() => setLocation(`/projects/${encodeURIComponent(selectedProjectId)}/audit`)}><History size={14} /> History</Button>}
           <div className="preview-stages lifecycle-controls" aria-label="Lifecycle power rail">
             <button onClick={launchApp} disabled={living.state !== "icon" && living.state !== "exited"}><Play size={12} /> Power</button>
             <button onClick={enterMedia} disabled={living.state !== "running"}><Film size={12} /> Media</button>
@@ -716,7 +777,7 @@ function launchApp() { send({ type: "lifecycle", event: { type: "LAUNCH" } }); s
           <div className="context-ribbon"><div className="selection-detail"><span className={cn("selection-marker", `marker-${selectedNode.tone}`)} /><div><span className="eyebrow">Selected thread</span><strong>{selectedNode.label}</strong></div></div><div className="context-meta"><span><Code2 size={14} /> orren.{selectedNode.id}</span><span><Activity size={14} /> {living.active.length} effects</span><span><RotateCcw size={14} /> {living.state}</span><span><TestTube2 size={14} /> 2 checks passing</span></div><Button className="context-action" onClick={() => setMode(mode === "simulate" ? "compose" : "simulate")}>{mode === "simulate" ? "Return to canvas" : "Simulate event"}<ArrowUpRight size={15} /></Button></div>
         </MainCanvas>
 
-         {loomOpen ? <><div className="panel-resizer right-resizer" onMouseDown={() => beginResize("right")} role="separator" aria-label="Resize conversation panel" /><aside className="loom-panel"><div className="loom-header"><div><span className="eyebrow">Conversation loom</span><h2>Studio presence <span className="loom-live"><span className="pulse-dot" /> {healthQuery.data?.status === "ok" ? "live" : "local"}</span></h2></div><Button variant="ghost" size="icon" className="loom-close" onClick={() => setLoomOpen(false)}><X size={17} /></Button></div><div className="loom-participants">{(workspace?.participants?.length ? workspace.participants.slice(0, 3) : [{ initials: "AM", tone: "gold" }, { initials: "O", tone: "green" }, { initials: "R", tone: "blue" }]).map((participant, index) => <Avatar key={participant.initials + index} initials={participant.initials} tone={participant.tone as "gold" | "green" | "blue"} />)}<div><strong>{workspace?.participants?.length ? `${workspace.participants[0]?.name ?? "Team"} + ${Math.max(0, workspace.participants.length - 1)} collaborators` : "Amara + 2 agents"}</strong><span>Working in the same thread</span></div></div><div className="loom-scroll">{(workspace?.messages ?? []).map((workspaceMessage) => <div className={cn("loom-message", workspaceMessage.tone === "agent" ? "agent" : workspaceMessage.tone === "soft" ? "soft" : "human")} key={workspaceMessage.id}><div className="message-meta"><Avatar initials={workspaceMessage.author.slice(0, 2).toUpperCase()} tone={workspaceMessage.role === "agent" ? "green" : workspaceMessage.role === "runtime" ? "blue" : "gold"} /><span>{workspaceMessage.author}</span><time>{workspaceMessage.timeLabel}</time></div><p>{workspaceMessage.body}</p>{workspaceMessage.linkedNodeId && <button className="message-anchor"><Sparkles size={13} /> linked to {workspaceNodes.find((node) => node.id === workspaceMessage.linkedNodeId)?.label ?? workspaceMessage.linkedNodeId}</button>}</div>)}{runtimeEvents.length > 0 && <div className="loom-message agent soft"><div className="message-meta"><Avatar initials="R" tone="gold" /><span>Runtime / shared state</span><time>now</time></div><p><strong>{activeEvent?.label ?? "Runtime signal"} ·</strong> {activeEvent?.detail ?? "The scenario is moving through the shared runtime."}</p></div>}<div className="loom-message human"><div className="message-meta"><Avatar initials="AM" tone="gold" /><span>Amara Mensah</span><time>09:41</time></div><p>Let’s make the first visit feel like an invitation, not an onboarding form.</p><button className="message-anchor"><Sparkles size={13} /> linked to Human intention</button></div><div className="loom-message agent"><div className="message-meta"><Avatar initials="O" tone="green" /><span>Orren / semantic guide</span><time>09:42</time></div><p>I’ve reframed the opening as a <strong>welcoming threshold</strong>. Three realizations are ready to compare without changing the source.</p><div className="agent-options"><button onClick={() => setMode("preview")}><span className="option-swatch swatch-clear" /><span><strong>Clear</strong><small>Focus and welcome</small></span><ArrowUpRight size={14} /></button><button onClick={() => setMode("preview")}><span className="option-swatch swatch-living" /><span><strong>Living</strong><small>Atmosphere and flow</small></span><ArrowUpRight size={14} /></button></div></div><div className="loom-message agent soft"><div className="message-meta"><Avatar initials="R" tone="blue" /><span>Reviewer / responsibility</span><time>09:43</time></div><p><span className="inline-status"><Check size={12} /> 2 checks</span> No new permissions or sensitive data paths detected.</p></div>{sent && <div className="loom-message human"><div className="message-meta"><Avatar initials="AM" tone="gold" /><span>You</span><time>now</time></div><p>{message || "Your latest studio note has been added to the loom."}</p></div>}</div><div className="loom-composer"><Textarea value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Ask the studio…" /><div className="composer-actions"><span><Plus size={14} /> Attach context</span><button onClick={sendMessage} aria-label="Send message" disabled={createMessage.isPending}><Send size={16} /></button></div></div>        </aside></> : <button className="loom-reopen" onClick={() => setLoomOpen(true)}><MessageCircle size={17} /><span>Open loom</span></button>}
+         {loomOpen ? <><div className="panel-resizer right-resizer" onMouseDown={() => beginResize("right")} role="separator" aria-label="Resize conversation panel" /><aside className="loom-panel"><div className="loom-header"><div><span className="eyebrow">Conversation loom</span><h2>Studio presence <span className="loom-live"><span className="pulse-dot" /> {healthQuery.data?.status === "ok" ? "live" : "local"}</span></h2></div><Button variant="ghost" size="icon" className="loom-close" onClick={() => setLoomOpen(false)}><X size={17} /></Button></div><div className="loom-participants">{(workspace?.participants?.length ? workspace.participants.slice(0, 3) : [{ initials: "AM", tone: "gold" }, { initials: "O", tone: "green" }, { initials: "R", tone: "blue" }]).map((participant, index) => <Avatar key={participant.initials + index} initials={participant.initials} tone={participant.tone as "gold" | "green" | "blue"} />)}<div><strong>{workspace?.participants?.length ? `${workspace.participants[0]?.name ?? "Team"} + ${Math.max(0, workspace.participants.length - 1)} collaborators` : "Amara + 2 agents"}</strong><span>Working in the same thread</span></div></div><div className="loom-sample-note">Illustrative thread: Orren replies and responsibility reviews are sample content until those live services are connected.</div><div className="loom-scroll">{(workspace?.messages ?? []).map((workspaceMessage) => <div className={cn("loom-message", workspaceMessage.tone === "agent" ? "agent" : workspaceMessage.tone === "soft" ? "soft" : "human")} key={workspaceMessage.id}><div className="message-meta"><Avatar initials={workspaceMessage.author.slice(0, 2).toUpperCase()} tone={workspaceMessage.role === "agent" ? "green" : workspaceMessage.role === "runtime" ? "blue" : "gold"} /><span>{workspaceMessage.author}</span>{workspaceMessage.id.startsWith("msg-") && <em className="message-sample-label">Example</em>}<time>{workspaceMessage.timeLabel}</time></div><p>{workspaceMessage.body}</p>{workspaceMessage.linkedNodeId && <button className="message-anchor"><Sparkles size={13} /> linked to {workspaceNodes.find((node) => node.id === workspaceMessage.linkedNodeId)?.label ?? workspaceMessage.linkedNodeId}</button>}</div>)}{runtimeEvents.length > 0 && <div className="loom-message agent soft"><div className="message-meta"><Avatar initials="R" tone="gold" /><span>Runtime / shared state</span><time>now</time></div><p><strong>{activeEvent?.label ?? "Runtime signal"} ·</strong> {activeEvent?.detail ?? "The scenario is moving through the shared runtime."}</p></div>}<div className="loom-message human"><div className="message-meta"><Avatar initials="AM" tone="gold" /><span>Amara Mensah</span><time>09:41</time></div><p>Let’s make the first visit feel like an invitation, not an onboarding form.</p><button className="message-anchor"><Sparkles size={13} /> linked to Human intention</button></div><div className="loom-message agent"><div className="message-meta"><Avatar initials="O" tone="green" /><span>Orren / semantic guide</span><time>09:42</time></div><p>I’ve reframed the opening as a <strong>welcoming threshold</strong>. Three realizations are ready to compare without changing the source.</p><div className="agent-options"><button onClick={() => setMode("preview")}><span className="option-swatch swatch-clear" /><span><strong>Clear</strong><small>Focus and welcome</small></span><ArrowUpRight size={14} /></button><button onClick={() => setMode("preview")}><span className="option-swatch swatch-living" /><span><strong>Living</strong><small>Atmosphere and flow</small></span><ArrowUpRight size={14} /></button></div></div><div className="loom-message agent soft"><div className="message-meta"><Avatar initials="R" tone="blue" /><span>Reviewer / responsibility</span><time>09:43</time></div><p><span className="inline-status"><Check size={12} /> 2 checks</span> No new permissions or sensitive data paths detected.</p></div>{sent && <div className="loom-message human"><div className="message-meta"><Avatar initials="AM" tone="gold" /><span>You</span><time>now</time></div><p>{message || "Your latest studio note has been added to the loom."}</p></div>}</div><div className="loom-composer"><Textarea value={message} onChange={(event) => setMessage(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter" && !event.shiftKey) { event.preventDefault(); sendMessage(); } }} placeholder="Ask the studio…" /><div className="composer-actions"><span><Plus size={14} /> Attach context</span><button onClick={sendMessage} aria-label="Send message" disabled={createMessage.isPending}><Send size={16} /></button></div></div>        </aside></> : <button className="loom-reopen" onClick={() => setLoomOpen(true)}><MessageCircle size={17} /><span>Open loom</span></button>}
       </section>
 
       <footer className="bottom-status"><div><span className="status-ring" /><span>All systems flowing</span><span className="footer-separator" /><span>Local-first workspace</span></div><div><span>Last checkpoint 4m ago</span><span className="footer-separator" /><button><TerminalSquare size={14} /> Open command line</button></div></footer>

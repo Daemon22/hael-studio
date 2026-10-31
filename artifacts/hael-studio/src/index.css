@@ -221,3 +221,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible { outline: 2px
 /* Recovery button */
 .runtime-recover { margin-left: auto; padding: 2px 8px; color: #5bd596; background: rgba(91, 213, 150, .12); border: 0; border-radius: 4px; font-size: 11px; cursor: pointer; }
 .runtime-recover:hover { background: rgba(91, 213, 150, .22); }
+.project-switcher select { max-width: 190px; color: #eadcbf; background: transparent; border: 0; outline: 0; font: inherit; font-size: 12px; }
+.project-switcher select option { color: #f1ede6; background: #211f1a; }
+.project-switcher > button { display: grid; width: 23px; height: 23px; place-items: center; color: #d8c79f; background: rgba(219,176,84,.1); border: 1px solid rgba(219,176,84,.15); border-radius: 6px; cursor: pointer; }
+.project-switcher > button:hover { background: rgba(219,176,84,.2); }
+.project-switcher > button:disabled { opacity: .5; cursor: wait; }
+@media (max-width: 960px) { .project-switcher { display:flex; margin-left:12px; max-width:190px; gap:5px; padding:6px 8px; }.project-switcher .eyebrow { display:none; }.project-switcher select { max-width:122px; min-width:0; } }
+@media (max-width: 680px) { .project-switcher { display:flex; margin:0; max-width:130px; padding:4px; border:0; background:transparent; }.project-switcher > svg { display:none; }.project-switcher select { max-width:92px; font-size:10px; }.project-switcher > button { width:21px; height:21px; } }

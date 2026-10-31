@@ -36,6 +36,9 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
+/.hael-workspaces/
+/artifacts/api-server/.hael-workspaces/
+/.hael-orren-projects/
 
 # System Files
 .DS_Store

@@ -3,5 +3,6 @@ import App from "./App";
 import "./styles/tokens.css";
 import "./index.css";
 import "./hael-responsive.css";
+import "./sample-data.css";
 
 createRoot(document.getElementById("root")!).render(<App />);

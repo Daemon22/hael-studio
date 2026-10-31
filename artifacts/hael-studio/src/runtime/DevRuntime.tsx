@@ -49,8 +49,18 @@ export default function DevRuntime({ children }: { children: ReactNode }) {
 function DevRuntimeHealthBridge() {
   const snapshot = useSyncExternalStore(runtimeRegistry.subscribe, runtimeRegistry.getSnapshot, runtimeRegistry.getSnapshot);
   useEffect(() => {
-    snapshot.records.filter((record) => record.dependsOn?.some((dependency) => snapshot.records.find((candidate) => candidate.id === dependency)?.health === "broken")).forEach((record) => runtimeRegistry.report(record.id, "degraded", "A registered dependency is broken."));
-    snapshot.records.filter((record) => record.affects?.some((affected) => snapshot.records.find((candidate) => candidate.id === affected)?.health === "broken")).forEach((record) => runtimeRegistry.report(record.id, "degraded", "An element this affects is broken."));
+    const records = new Map(snapshot.records.map((record) => [record.id, record]));
+    for (const record of snapshot.records) {
+      const failedDependency = record.dependsOn?.map((id) => records.get(id)).find((dependency) =>
+        !dependency || !dependency.active || dependency.health === "broken" || dependency.health === "degraded",
+      );
+      if (failedDependency && record.health !== "broken") {
+        const dependencyLabel = failedDependency?.label ?? record.dependsOn?.find((id) => !records.has(id)) ?? "unknown dependency";
+        runtimeRegistry.report(record.id, "degraded", `Dependency health: ${dependencyLabel} is unavailable or unhealthy.`);
+      } else if (!failedDependency && record.health === "degraded" && record.error?.startsWith("Dependency health:")) {
+        runtimeRegistry.report(record.id, "healthy");
+      }
+    }
   }, [snapshot]);
   return null;
 }

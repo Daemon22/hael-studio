@@ -27,6 +27,21 @@ class ChangeTracker {
   private pendingChanges = new Set<string>();
 
   recordChange(event: ChangeEvent): ChangeTrace {
+    const snapshot = runtimeRegistry.getSnapshot();
+    const recordsById = new Map(snapshot.records.map((record) => [record.id, record]));
+    const impacted = new Set<string>([event.id]);
+    const queue = [event.id];
+    // Follow dependency and effect edges to capture the full consequence chain.
+    while (queue.length) {
+      const changedId = queue.shift()!;
+      for (const record of snapshot.records) {
+        if (impacted.has(record.id)) continue;
+        if (record.dependsOn?.includes(changedId) || recordsById.get(changedId)?.affects?.includes(record.id)) {
+          impacted.add(record.id);
+          queue.push(record.id);
+        }
+      }
+    }
     const trace: ChangeTrace = {
       id: `trace-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       changeId: event.id,
@@ -34,8 +49,13 @@ class ChangeTracker {
       type: this.mapEventToType(event),
       timestamp: event.timestamp,
       consequence: event.consequence || "",
-      affectedIds: [],
-      healthImpact: new Map(),
+      affectedIds: [...impacted].filter((id) => id !== event.id),
+      healthImpact: recordsById.has(event.id)
+        ? new Map([[event.id, {
+            from: event.from ?? recordsById.get(event.id)!.health,
+            to: event.to ?? recordsById.get(event.id)!.health,
+          }]])
+        : new Map(),
       resolved: false,
     };
 

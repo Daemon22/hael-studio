@@ -6,9 +6,11 @@ import {
   ListRuntimeEventsResponse,
   ListRuntimeScenariosResponse,
 } from "@workspace/api-zod";
-import { readRuntimeEvents, saveRuntimeEvent } from "../lib/workspaceRepository";
+import { readRuntimeEvents, recordProjectAuditEvent, saveRuntimeEvent } from "../lib/workspaceRepository";
+import { authorizeProjectRequest } from "../lib/projectAccess";
 
-const router: IRouter = Router();
+const router: IRouter = Router({ mergeParams: true });
+router.use(authorizeProjectRequest);
 
 const scenarios = [
   {
@@ -55,7 +57,7 @@ router.get("/runtime/scenarios", (req, res) => {
 });
 
 router.get("/runtime/events", async (_req, res) => {
-  res.json(ListRuntimeEventsResponse.parse(await readRuntimeEvents()));
+  res.json(ListRuntimeEventsResponse.parse(await readRuntimeEvents(res.locals.studioProjectId)));
 });
 
 router.post("/runtime/events", async (req, res) => {
@@ -74,7 +76,12 @@ router.post("/runtime/events", async (req, res) => {
     id: randomUUID(),
     ...parsed.data,
   });
-  await saveRuntimeEvent(event);
+  await saveRuntimeEvent(event, res.locals.studioProjectId);
+  await recordProjectAuditEvent({
+    id: randomUUID(), projectId: res.locals.studioProjectId, actorSubject: (res.locals.studioActor as { subject: string }).subject,
+    action: "runtime.event.injected", resourceType: "runtime_event", resourceId: event.id,
+    requestId: String(req.id), metadata: { scenarioId: event.scenarioId, topic: event.topic }, outcome: "succeeded",
+  });
   req.log.info({ scenarioId: event.scenarioId, topic: event.topic }, "Runtime event injected");
   res.status(201).json(event);
 });

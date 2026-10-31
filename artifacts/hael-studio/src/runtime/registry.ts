@@ -43,6 +43,7 @@ type Listener = () => void;
 
 class RuntimeRegistry {
   private records = new Map<string, RuntimeRecord>();
+  private registrations = new Map<string, symbol>();
   private listeners = new Set<Listener>();
   private revision = 0;
   private changeLog: ChangeEvent[] = [];
@@ -51,6 +52,8 @@ class RuntimeRegistry {
   register(element: RuntimeElement) {
     const previous = this.records.get(element.id);
     const version = previous ? previous.version + 1 : 1;
+    const registration = Symbol(element.id);
+    this.registrations.set(element.id, registration);
     const newRecord: RuntimeRecord = {
       ...previous,
       ...element,
@@ -73,7 +76,9 @@ class RuntimeRegistry {
     this.publish();
     return () => {
       const current = this.records.get(element.id);
-      if (current) {
+      // Ignore stale HMR cleanup callbacks after a newer instance claimed this stable id.
+      if (current && this.registrations.get(element.id) === registration) {
+        this.registrations.delete(element.id);
         this.records.set(element.id, { ...current, active: false, changedAt: Date.now() });
         this.logChange({
           id: element.id,
